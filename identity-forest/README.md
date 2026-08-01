@@ -65,6 +65,14 @@ narrative flattens or opens depending on how many axes you allow it (keys 1–4)
   appear at first attendance and grow with accumulated presence, threads thicken
   as shared sessions accrete, flow-particles run along the current session's
   edges. Play / scrub timebar.
+- **Watch their year** — the second card button (hidden in 1D and for
+  zero-session seedlings): stand in a person's seat AND play time from there.
+  Starts one session before their first ("CS12 — the room before you arrived ·
+  5 present"), then narrates each step in second person from the record:
+  "CS14 — your 9th time in the room · beside Richard Welsh, Michiel +1" /
+  "CS14 — you weren't in the room · 4 were"; ends on "the year as Daniel lived
+  it — present 12 of 26 sessions · 25 companions". Companion names ordered by
+  tie strength; scrubbing keeps narrating; `Esc` / step-back exits.
 
 1D/3D/4D render on a `<canvas>` (organisms pre-rendered once as sprites, then
 stamped with perspective scaling); 2D remains the original SVG. All positions,

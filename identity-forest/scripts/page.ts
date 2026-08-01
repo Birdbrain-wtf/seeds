@@ -130,6 +130,8 @@ export function pageHTML(nodes: PNode[], edges: PEdge[], sentences: string[], se
     cursor:pointer; transition:all .3s var(--ease)}
   .stand:hover{background:rgba(224,179,86,.22)}
   body.d3 .stand, body.d4 .stand{display:block}
+  .stand.year{display:block; margin-top:10px}
+  body.d1 .stand.year{display:none}
   .unstand{position:absolute; left:50%; top:146px; transform:translateX(-50%); z-index:7; display:none; padding:8px 18px; border-radius:999px;
     border:1px solid rgba(224,179,86,.45); background:rgba(10,13,7,.75); color:var(--gold); font-family:"JetBrains Mono",monospace; font-size:11.5px;
     letter-spacing:.08em; cursor:pointer; -webkit-backdrop-filter:blur(8px); backdrop-filter:blur(8px)}
@@ -307,6 +309,7 @@ export function pageHTML(nodes: PNode[], edges: PEdge[], sentences: string[], se
   <h3>Most often in the room with</h3>
   <div id="c-ties"></div>
   <button class="stand" id="stand">⤳ stand with them — see the room as they see it</button>
+  <button class="stand year" id="year">▸ watch their year — the sessions from their seat</button>
 </aside>
 
 <footer>
@@ -500,7 +503,7 @@ function unlight(){
     ed.under.setAttribute("opacity",(ed.op*0.3).toFixed(3));
     ed.g.style.opacity = "1";
   });
-  whisper.classList.remove("on");
+  if(YEAR>=0 && MODE===4){ yearCaption(); } else { whisper.classList.remove("on"); }
 }
 
 // ---------- seed card ----------
@@ -540,6 +543,7 @@ function select(idx){
     tl.appendChild(b);
   });
   if(!ties.length){ tl.innerHTML='<div class="trow"><span class="n" style="color:var(--faint)">no shared sessions yet</span></div>'; }
+  document.getElementById("year").style.display = n.sess.length? "" : "none";
   card.classList.add("on");
 }
 function deselect(){ locked=-1; unlight(); card.classList.remove("on"); }
@@ -768,7 +772,7 @@ function camFocus(idx){
 }
 
 // ---- modes ----
-let MODE=2, T4=0, playing=false, lastStep=0, STAND=-1, hoverC=-1;
+let MODE=2, T4=0, playing=false, lastStep=0, STAND=-1, YEAR=-1, hoverC=-1;
 let zUnfold=1, zuFrom=0, zuT0=0, zuAnim=false;
 let rafId=null, lastUser=0, dragC=null, movedC=false;
 const dimcap=document.getElementById("dimcap");
@@ -798,7 +802,7 @@ function setDim(d){
   dimcap.textContent=CAPS[d]; dimcap.classList.add("on");
   clearTimeout(capT); capT=setTimeout(()=>dimcap.classList.remove("on"), 9000);
   hintEl.textContent=HINTS[d];
-  if(STAND>=0){ STAND=-1; unstandBtn.classList.remove("on"); whisper.classList.remove("on"); }
+  if(STAND>=0){ STAND=-1; YEAR=-1; unstandBtn.classList.remove("on"); whisper.classList.remove("on"); }
   if(d===2){ stopLoop(); playing=false; updPlay(); return; }
   if(d===1){
     cam={yaw:0,pitch:0,dist:1500,tx:0,ty:0,tz:0}; camTween=null;
@@ -824,7 +828,7 @@ const scrub=document.getElementById("tscrub"); scrub.max=String(Math.max(0,S_COU
 const tplay=document.getElementById("tplay");
 const tlabel=document.getElementById("tlabel");
 function updPlay(){ tplay.textContent = playing? "⏸" : "▶"; }
-function updTlabel(){ tlabel.textContent = SESS[T4]+" · "+(bySess[T4]?bySess[T4].length:0)+" present · "+(T4+1)+"/"+S_COUNT; }
+function updTlabel(){ tlabel.textContent = SESS[T4]+" · "+(bySess[T4]?bySess[T4].length:0)+" present · "+(T4+1)+"/"+S_COUNT; yearCaption(); }
 tplay.addEventListener("click",()=>{ playing=!playing; if(playing && T4>=S_COUNT-1){ T4=0; scrub.value="0"; updTlabel(); } lastStep=performance.now(); updPlay(); });
 scrub.addEventListener("input",()=>{ T4=+scrub.value; playing=false; updPlay(); updTlabel(); });
 
@@ -845,11 +849,49 @@ function standWith(idx){
 }
 function unstand(){
   if(STAND<0) return;
-  STAND=-1; unstandBtn.classList.remove("on"); whisper.classList.remove("on");
+  STAND=-1; YEAR=-1; unstandBtn.classList.remove("on"); whisper.classList.remove("on");
   camTo(CAM0, 900);
 }
 standBtn.addEventListener("click",()=>{ if(locked>=0) standWith(locked); });
 unstandBtn.addEventListener("click",unstand);
+
+// ---- watch their year: time played from inside their seat ----
+const yearBtn=document.getElementById("year");
+function ordinal(k){ const j=k%10,q=k%100; if(j===1&&q!==11)return k+"st"; if(j===2&&q!==12)return k+"nd"; if(j===3&&q!==13)return k+"rd"; return k+"th"; }
+function watchYear(idx){
+  if(!N[idx].sess.length) return;
+  if(MODE!==4) setDim(4);
+  YEAR=idx; STAND=idx;
+  const p=W3[idx];
+  const d=Math.max(760, Math.hypot(p.x,p.y,p.z)*1.55+430);
+  const pitch=Math.asin(Math.max(-0.85,Math.min(0.85,-p.y/d)));
+  const yaw=Math.atan2(-p.x,-p.z);
+  camTo({yaw, pitch, dist:d, tx:0, ty:0, tz:0}, 1150);
+  unstandBtn.classList.add("on");
+  T4=Math.max(0, first[idx]-1); scrub.value=String(T4);
+  playing=!REDUCED; lastStep=performance.now(); updPlay(); updTlabel();
+}
+function yearCaption(){
+  if(YEAR<0||MODE!==4) return;
+  const n=N[YEAR];
+  let msg;
+  if(T4>=S_COUNT-1 && !playing){
+    msg="the year as "+n.name+" lived it — present "+n.att+" of "+S_COUNT+" sessions · "+nbr[YEAR].length+" companion"+(nbr[YEAR].length===1?"":"s");
+  } else if(T4<first[YEAR]){
+    msg=SESS[T4]+" — the room before you arrived · "+(bySess[T4]?bySess[T4].length:0)+" present";
+  } else if(n.sess.indexOf(T4)>=0){
+    let ord=0; for(let q=0;q<n.sess.length;q++) if(n.sess[q]<=T4) ord++;
+    const comp=(bySess[T4]||[]).filter(i=>i!==YEAR);
+    const str=(i)=>{ const x=nbr[YEAR].find(y=>y.o===i); return x?x.s:0; };
+    comp.sort((a,b)=>str(b)-str(a));
+    const names=comp.slice(0,2).map(i=>N[i].name);
+    msg=SESS[T4]+" — your "+ordinal(ord)+" time in the room"+(names.length? " · beside "+names.join(", ")+(comp.length>2? " +"+(comp.length-2) : "") : " · alone in the record");
+  } else {
+    msg=SESS[T4]+" — you weren't in the room · "+(bySess[T4]?bySess[T4].length:0)+" were";
+  }
+  whisper.textContent=msg; whisper.classList.add("on");
+}
+yearBtn.addEventListener("click",()=>{ if(locked>=0) watchYear(locked); });
 
 // ---- interaction ----
 canvas.addEventListener("pointerdown",(e)=>{ dragC={x:e.clientX,y:e.clientY,yaw:cam.yaw,pitch:cam.pitch}; movedC=false; canvas.classList.add("panning"); lastUser=performance.now(); });
@@ -901,7 +943,7 @@ function frame(t){
   if(MODE===4 && playing && t-lastStep>1650){
     lastStep=t;
     if(T4<S_COUNT-1){ T4++; scrub.value=String(T4); updTlabel(); }
-    else { playing=false; updPlay(); }
+    else { playing=false; updPlay(); updTlabel(); }
   }
   draw(t);
 }
