@@ -31,7 +31,7 @@ export function pageHTML(nodes: PNode[], edges: PEdge[], sentences: string[], se
   const data = JSON.stringify({ nodes, edges, sessions });
   const sent = JSON.stringify(sentences);
 
-  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Birdbrain — Identity Forest</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -228,22 +228,36 @@ export function pageHTML(nodes: PNode[], edges: PEdge[], sentences: string[], se
   @keyframes pulse{0%{r:5}50%{r:13}100%{r:5}}
 
   @media (max-width:860px){
-    .panel{position:static; max-width:none; padding:76px 22px 0; pointer-events:auto}
-    .lens-row{position:static; max-width:none; margin:12px 22px 0}
-    .stage{height:auto}
-    #forest{position:relative; height:72vh; display:block}
-    #dim{position:relative; inset:auto; height:72vh; display:none}
+    .stage{height:auto; display:flex; flex-direction:column}
+    .panel{order:-1; position:static; max-width:none; padding:calc(58px + env(safe-area-inset-top)) 20px 6px; pointer-events:auto}
+    .panel h1{font-size:clamp(34px,9.4vw,46px)}
+    .lede{font-size:16.5px; max-width:none}
+    #forest{position:relative; height:44vh; display:block}
+    #dim{position:relative; inset:auto; height:56vh; display:none}
     body.dcanvas #dim{display:block}
     body.dcanvas #forest{display:none}
-    .dimbar{top:10px}
-    .dimcap{top:56px; font-size:13.5px}
-    .timebar{bottom:20px; width:calc(100vw - 32px)}
+    .dimbar{left:12px; transform:none; top:calc(10px + env(safe-area-inset-top))}
+    .dimbar button{padding:6px 10px; font-size:11px}
+    .find{right:12px; top:calc(12px + env(safe-area-inset-top))}
+    .find input{width:96px; font-size:11px; padding:7px 11px}
+    .find input:focus{width:136px}
+    .dimcap{position:fixed; top:auto; bottom:calc(18px + env(safe-area-inset-bottom)); font-size:13px; width:calc(100vw - 32px);
+      background:rgba(8,10,5,.72); -webkit-backdrop-filter:blur(8px); backdrop-filter:blur(8px); border-radius:12px; padding:8px 12px}
+    body.d4 .dimcap{bottom:calc(86px + env(safe-area-inset-bottom))}
+    .whisper{position:fixed; top:auto; bottom:calc(84px + env(safe-area-inset-bottom)); max-width:calc(100vw - 32px); white-space:normal; text-align:center; z-index:8}
+    .timebar{position:fixed; left:14px; right:14px; bottom:calc(14px + env(safe-area-inset-bottom)); width:auto; transform:none}
+    .timebar .tlabel{min-width:0; font-size:10.5px}
+    .unstand{top:auto; bottom:calc(72px + env(safe-area-inset-bottom)); position:fixed}
     .stage::after{display:none}
     .legend{display:none}
-    .ticker{position:static; transform:none; width:auto; margin:6px 22px; text-align:left; height:30px; position:relative}
-    .card{right:0; left:0; top:auto; bottom:0; transform:translateY(30px); width:100%; max-height:62vh; border-radius:18px 18px 0 0}
+    .lens-row{position:static; max-width:none; margin:12px 20px 0}
+    .ticker{position:relative; left:0; bottom:auto; transform:none; width:auto; margin:14px 20px 0; text-align:left; height:52px}
+    .ticker span{font-size:14px; text-align:left}
+    .hint{display:none}
+    .lbl.minor{display:none}
+    .card{right:0; left:0; top:auto; bottom:0; transform:translateY(30px); width:100%; max-height:66vh; overflow-y:auto; border-radius:18px 18px 0 0;
+      padding-bottom:calc(20px + env(safe-area-inset-bottom))}
     .card.on{transform:none}
-    .find input{width:120px}
   }
   @media (prefers-reduced-motion: reduce){
     *,.org .inner,.org .leafin,.org .mote{animation:none !important; transition:none !important}
@@ -384,8 +398,9 @@ const edgeEls = E.map(([a,b,s],ei)=>{
 const orgEls = new Array(N.length);
 const labelEls = new Array(N.length);
 const labelSet = el("g",{class:"labelset"},svg);
+const majorLbl = new Set(N.map((_,i)=>i).sort((a,b)=>N[b].att-N[a].att).slice(0,14));
 function addLabel(idx,n,h,op){
-  const t = el("text",{class:"lbl",x:N[idx].x.toFixed(1),y:(N[idx].y-h-16).toFixed(0),opacity:op},labelSet);
+  const t = el("text",{class:"lbl"+(majorLbl.has(idx)?"":" minor"),x:N[idx].x.toFixed(1),y:(N[idx].y-h-16).toFixed(0),opacity:op},labelSet);
   t.textContent = n.name.toUpperCase(); labelEls[idx]=t;
 }
 const drawOrder = N.map((_,i)=>i).sort((a,b)=>N[a].y-N[b].y);
@@ -602,12 +617,30 @@ svg.addEventListener("wheel",(e)=>{
   const w = Math.min(3200, Math.max(220, vb.w*f)); const h = w*(VB0.h/VB0.w);
   vb = { x: mx-(mx-vb.x)*(w/vb.w), y: my-(my-vb.y)*(h/vb.h), w, h }; setVB();
 },{passive:false});
-let pan=null;
-svg.addEventListener("pointerdown",(e)=>{ pan={x:e.clientX,y:e.clientY,vx:vb.x,vy:vb.y}; svg.classList.add("panning"); });
-window.addEventListener("pointermove",(e)=>{ if(!pan) return;
+let pan=null; const ptrs=new Map(); let pinch=null;
+svg.addEventListener("pointerdown",(e)=>{
+  ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY});
+  if(ptrs.size===2){ const [a,b]=[...ptrs.values()]; pinch={d:Math.hypot(a.x-b.x,a.y-b.y),w:vb.w}; pan=null; }
+  else if(ptrs.size===1) pan={x:e.clientX,y:e.clientY,vx:vb.x,vy:vb.y};
+  svg.classList.add("panning"); });
+window.addEventListener("pointermove",(e)=>{
+  if(ptrs.has(e.pointerId)) ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY});
+  if(pinch && ptrs.size===2){
+    const [a,b]=[...ptrs.values()]; const d=Math.hypot(a.x-b.x,a.y-b.y); if(d<12) return;
+    const r=svg.getBoundingClientRect(); const cx=(a.x+b.x)/2, cy=(a.y+b.y)/2;
+    const fx=(cx-r.left)/r.width, fy=(cy-r.top)/r.height;
+    const mx=vb.x+fx*vb.w, my=vb.y+fy*vb.h;
+    const w=Math.min(3200,Math.max(220,pinch.w*pinch.d/d)); const h=w*(VB0.h/VB0.w);
+    vb={x:mx-fx*w, y:my-fy*h, w, h}; setVB(); return; }
+  if(!pan) return;
   const r=svg.getBoundingClientRect();
   vb.x = pan.vx - (e.clientX-pan.x)/r.width*vb.w; vb.y = pan.vy - (e.clientY-pan.y)/r.height*vb.h; setVB(); });
-window.addEventListener("pointerup",()=>{ pan=null; svg.classList.remove("panning"); });
+function endPtr(e){
+  ptrs.delete(e.pointerId); if(ptrs.size<2) pinch=null;
+  if(ptrs.size===0){ pan=null; svg.classList.remove("panning"); }
+  else if(ptrs.size===1 && !pinch){ const [a]=[...ptrs.values()]; pan={x:a.x,y:a.y,vx:vb.x,vy:vb.y}; } }
+window.addEventListener("pointerup",endPtr);
+window.addEventListener("pointercancel",endPtr);
 svg.addEventListener("dblclick",()=>{ animateVB(VB0); });
 function animateVB(target){
   const from={...vb}; const t0=performance.now(); const D=650;
@@ -815,6 +848,9 @@ function setDim(d){
   else { playing=false; updPlay(); }
   requestAnimationFrame(sizeCanvas);
   startLoop();
+  // on small screens the stage sits below the header — bring it into view
+  if(matchMedia("(max-width:860px)").matches)
+    (d===2?svg:canvas).scrollIntoView({behavior:REDUCED?"auto":"smooth", block:"center"});
 }
 document.querySelectorAll(".dimbar button").forEach(b=>b.addEventListener("click",()=>setDim(+b.dataset.d)));
 document.addEventListener("keydown",(e)=>{
@@ -894,8 +930,19 @@ function yearCaption(){
 yearBtn.addEventListener("click",()=>{ if(locked>=0) watchYear(locked); });
 
 // ---- interaction ----
-canvas.addEventListener("pointerdown",(e)=>{ dragC={x:e.clientX,y:e.clientY,yaw:cam.yaw,pitch:cam.pitch}; movedC=false; canvas.classList.add("panning"); lastUser=performance.now(); });
+const ptrsC=new Map(); let pinchC=null;
+canvas.addEventListener("pointerdown",(e)=>{
+  ptrsC.set(e.pointerId,{x:e.clientX,y:e.clientY});
+  if(ptrsC.size===2){ const [a,b]=[...ptrsC.values()]; pinchC={d:Math.hypot(a.x-b.x,a.y-b.y),dist:cam.dist}; dragC=null; movedC=true; }
+  else dragC={x:e.clientX,y:e.clientY,yaw:cam.yaw,pitch:cam.pitch}, movedC=false;
+  canvas.classList.add("panning"); lastUser=performance.now(); });
 addEventListener("pointermove",(e)=>{
+  if(ptrsC.has(e.pointerId)) ptrsC.set(e.pointerId,{x:e.clientX,y:e.clientY});
+  if(pinchC && ptrsC.size===2){
+    lastUser=performance.now();
+    const [a,b]=[...ptrsC.values()]; const d=Math.hypot(a.x-b.x,a.y-b.y); if(d<12) return;
+    if(MODE!==1) cam.dist=Math.max(320,Math.min(3600,pinchC.dist*pinchC.d/d));
+    return; }
   if(dragC){
     lastUser=performance.now();
     const dx=e.clientX-dragC.x, dy=e.clientY-dragC.y;
@@ -922,11 +969,13 @@ addEventListener("pointermove",(e)=>{
     } else if(best<0 && locked<0 && STAND<0) whisper.classList.remove("on");
   }
 });
-addEventListener("pointerup",()=>{
-  if(!dragC) return;
+addEventListener("pointerup",(e)=>{
+  ptrsC.delete(e.pointerId); if(ptrsC.size<2) pinchC=null;
+  if(!dragC){ if(ptrsC.size===0) canvas.classList.remove("panning"); return; }
   dragC=null; canvas.classList.remove("panning");
   if(!movedC){ if(hoverC>=0) select(hoverC); else if(STAND<0) deselect(); }
 });
+addEventListener("pointercancel",(e)=>{ ptrsC.delete(e.pointerId); if(ptrsC.size<2) pinchC=null; if(ptrsC.size===0){ dragC=null; canvas.classList.remove("panning"); } });
 canvas.addEventListener("wheel",(e)=>{ if(MODE===1) return; e.preventDefault(); lastUser=performance.now();
   cam.dist=Math.max(320,Math.min(3600,cam.dist*(e.deltaY>0?1.09:1/1.09))); },{passive:false});
 canvas.addEventListener("dblclick",()=>{ if(MODE===1) return; if(STAND>=0){ unstand(); } else camTo(CAM0,800); });
@@ -1085,10 +1134,14 @@ function draw(t){
     }
     cx2.globalAlpha=1;
   } else {
-    const byAtt=N.map((_,i)=>i).sort((a,b)=>N[b].att-N[a].att).slice(0,12);
-    const want=new Set(byAtt);
-    if(focus>=0){ want.add(focus); nbr[focus].slice().sort((a,b)=>b.s-a.s).slice(0,8).forEach(x=>want.add(x.o)); }
-    for(const i of want){
+    const byAtt=N.map((_,i)=>i).sort((a,b)=>N[b].att-N[a].att).slice(0, CW<560?9:12);
+    // priority order: the focused person first, then their strongest ties, then the most present
+    const order=[], seenL=new Set();
+    const pushL=(i)=>{ if(i>=0 && !seenL.has(i)){ seenL.add(i); order.push(i); } };
+    if(focus>=0){ pushL(focus); nbr[focus].slice().sort((a,b)=>b.s-a.s).slice(0,8).forEach(x=>pushL(x.o)); }
+    byAtt.forEach(pushL);
+    const drawnL=[];
+    for(const i of order){
       const s=SCR[i]; if(!s.vis) continue;
       if(i===STAND) continue; // you don't see your own name from inside your view
       if(MODE===4 && first[i]>T4) continue;
@@ -1098,12 +1151,18 @@ function draw(t){
       if(focus>=0 && i!==focus && !(conn&&conn[i])) alpha*=0.2;
       if(lens && !hasTopic(i,lens)) alpha*=0.2;
       cx2.font="600 "+px.toFixed(1)+"px Inter,sans-serif";
+      const name=N[i].name.toUpperCase();
+      const ly=s.y-(SPRITES[i].L0+16)*s.k;
+      const tw=cx2.measureText(name).width;
+      const box={x0:s.x-tw/2-5, x1:s.x+tw/2+5, y0:ly-px-4, y1:ly+5};
+      // declutter: a name never draws over an already-placed name
+      if(drawnL.some(b=>b.x0<box.x1 && box.x0<b.x1 && b.y0<box.y1 && box.y0<b.y1)) continue;
+      drawnL.push(box);
       cx2.globalAlpha=alpha;
       cx2.strokeStyle="rgba(3,4,2,.9)"; cx2.lineWidth=3;
-      const ly=s.y-(SPRITES[i].L0+16)*s.k;
-      cx2.strokeText(N[i].name.toUpperCase(), s.x, ly);
+      cx2.strokeText(name, s.x, ly);
       cx2.fillStyle="#e9e4d6";
-      cx2.fillText(N[i].name.toUpperCase(), s.x, ly);
+      cx2.fillText(name, s.x, ly);
     }
     cx2.globalAlpha=1;
   }

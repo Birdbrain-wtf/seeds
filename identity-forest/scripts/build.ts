@@ -396,6 +396,9 @@ function forestSVG(
   // seedlings, painter-ordered so lower plants overlap upper ones naturally;
   // labels go on their own top layer so no plant ever drowns a name
   const drawOrder = seeds.map((_, i) => i).sort((a, b) => pos[a].y - pos[b].y);
+  // label rank by presence: the top names stay visible on small screens, the rest thin out
+  const byPresence = seeds.map((_, i) => i).sort((a, b) => sprouts[b].att - sprouts[a].att);
+  const majorLabel = new Set(byPresence.slice(0, 14));
   const labels: string[] = [];
   for (const idx of drawOrder) {
     const s = seeds[idx], o = sprouts[idx], p = pos[idx];
@@ -403,7 +406,7 @@ function forestSVG(
     const labelOp = o.att === 0 && o.topics.length === 0 ? 0.45 : 0.92;
     parts.push(`<g transform="translate(${p.x.toFixed(1)} ${p.y.toFixed(1)})">${body}</g>`);
     labels.push(
-      `<text x="${p.x.toFixed(1)}" y="${(p.y - height - 16).toFixed(0)}" text-anchor="middle" font-family="Inter, sans-serif" font-size="10.5" font-weight="600" letter-spacing="0.9" fill="#e9e4d6" opacity="${labelOp}" stroke="#030402" stroke-width="3" paint-order="stroke">${escapeXml(s.name.toUpperCase())}</text>`
+      `<text class="slbl${majorLabel.has(idx) ? "" : " minor"}" x="${p.x.toFixed(1)}" y="${(p.y - height - 16).toFixed(0)}" text-anchor="middle" font-family="Inter, sans-serif" font-size="10.5" font-weight="600" letter-spacing="0.9" fill="#e9e4d6" opacity="${labelOp}" stroke="#030402" stroke-width="3" paint-order="stroke">${escapeXml(s.name.toUpperCase())}</text>`
     );
   }
   parts.push(`<g>${labels.join("")}</g>`);
