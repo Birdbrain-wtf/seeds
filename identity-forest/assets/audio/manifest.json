@@ -1,0 +1,20 @@
+{
+  "what": "Fixed audio timbres for the Identity Forest. Generated ONCE by a sound model, then treated as static assets — the mapping from record to sound (who, when, pitch, blend) is a pure deterministic function of the Seed data; these files are only the instrument.",
+  "model": "fal-ai/stable-audio-25/text-to-audio (Stable Audio 2.5 via fal.ai)",
+  "generated": "2026-08-09",
+  "regenerate": "bun run infra/skills/sonic-signature/scripts/fal-audio.ts --prompt <prompt> --seconds <s> --seed <seed> --out assets/audio/<name>.wav  (note: model outputs are not bit-reproducible even with a fixed seed — regeneration changes the instrument, not the score)",
+  "processing": "ffmpeg: one-shots trimmed to a single attack + fade; all stems loudness-normalised (textures -19 LUFS, bed -23 LUFS, one-shots -16/-17 LUFS); encoded AAC 96-112k to web/*.m4a",
+  "pluck_root_midi": 48,
+  "stems": [
+    { "name": "bed-forest", "seconds": 48, "seed": 101, "role": "resting-state ambience, always on when sound is enabled", "prompt": "very quiet forest ambience at dawn, soft air tone, sparse distant birdsong, gentle leaves, warm and calm, extremely minimal, seamless loop, no music, no drums, no vocals" },
+    { "name": "fam-red", "seconds": 24, "seed": 102, "role": "topic family hue 0-59", "prompt": "warm low cello and tape-saturated string drone, slow breathing swells, intimate, seamless ambient loop, no drums, no vocals, no melody" },
+    { "name": "fam-yellow", "seconds": 24, "seed": 103, "role": "topic family hue 60-119", "prompt": "bright kalimba and mbira gentle shimmer, sparse playful notes, sunlit, ambient, seamless loop, no drums, no vocals" },
+    { "name": "fam-green", "seconds": 24, "seed": 104, "role": "topic family hue 120-179", "prompt": "soft woodland harp arpeggios and airy flute breaths, organic, gentle, ambient, seamless loop, no drums, no vocals" },
+    { "name": "fam-cyan", "seconds": 24, "seed": 105, "role": "topic family hue 180-239", "prompt": "glassy singing bowls and bowed vibraphone, crystalline sustained tones, serene, seamless ambient loop, no drums, no vocals" },
+    { "name": "fam-blue", "seconds": 24, "seed": 106, "role": "topic family hue 240-299", "prompt": "deep warm analog synth pad, very slow swell, oceanic calm, dark and soft, seamless ambient loop, no drums, no vocals, no melody" },
+    { "name": "fam-magenta", "seconds": 24, "seed": 107, "role": "topic family hue 300-359", "prompt": "ethereal wordless choir shimmer, voix celeste, soft and distant, luminous, seamless ambient loop, no drums, no lyrics" },
+    { "name": "note-pluck", "seconds": 4, "seed": 108, "role": "one note per person; playbackRate-shifted from measured C3 root to each person's pentatonic note", "prompt": "single soft harp pluck, one note only, middle C, warm, intimate, clean natural decay to silence, no drums, no vocals" },
+    { "name": "chord-bloom", "seconds": 5, "seed": 109, "role": "card-open bloom, subtly pitch-shifted toward the person's note", "prompt": "soft celesta and harp chord bloom, gentle ascending arpeggio, warm major chord, magical, clean tail to silence, no drums, no vocals" },
+    { "name": "session-pulse", "seconds": 3, "seed": 110, "role": "4D playback: one pulse per session, under the chord of whoever was present", "prompt": "single soft low marimba mallet hit, one warm deep note, round and gentle, clean decay to silence, no drums, no vocals" }
+  ]
+}
