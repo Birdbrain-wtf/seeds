@@ -503,6 +503,31 @@ writeFileSync(
   )
 );
 
+// ---------- sound parameters (deterministic; timbres are pre-generated stems) ----------
+// Each person gets one note on the C-major pentatonic scale — more presence =
+// deeper voice (like a bigger organism). The stems themselves were composed
+// once by a sound model (Stable Audio 2.5 via fal.ai) and live in
+// assets/audio/web/; the *mapping* from record to sound is pure data.
+const PENTA = [0, 2, 4, 7, 9];
+function pentaSnap(midi: number): number {
+  const oct = Math.floor(midi / 12), pc = midi % 12;
+  let best = PENTA[0], d = 99;
+  for (const p of PENTA) if (Math.abs(p - pc) < d) { d = Math.abs(p - pc); best = p; }
+  return oct * 12 + best;
+}
+const maxAtt = Math.max(1, ...seeds.map((s) => s.attended.length));
+function noteOf(s: Seed): number {
+  const t = s.attended.length / maxAtt; // 0..1
+  return pentaSnap(Math.round(69 - t * 21)); // A4 down to C3 — presence deepens the voice
+}
+// Six timbral families, keyed to the same hue wheel the visuals use.
+function famOf(s: Seed): number[] {
+  const w = [0, 0, 0, 0, 0, 0];
+  for (const t of s.topics) w[Math.floor(hueForTopic(t.topic) / 60) % 6] += t.sessions;
+  const sum = w.reduce((a, b) => a + b, 0);
+  return sum ? w.map((v) => +(v / sum).toFixed(3)) : w;
+}
+
 // ---------- the living page (interactive; same data, client-drawn) ----------
 const pageNodes: PNode[] = seeds.map((s, i) => ({
   slug: s.slug,
@@ -519,6 +544,8 @@ const pageNodes: PNode[] = seeds.map((s, i) => ({
   topics: sprouts[i].topics,
   z: +depth[i].toFixed(4),
   sess: s.attended.map((id) => sessIdx.get(id)!).filter((v) => v !== undefined).sort((a, b) => a - b),
+  note: noteOf(s),
+  fam: famOf(s),
 }));
 const pageEdges: PEdge[] = edges.map((e) => [e.a, e.b, e.shared]);
 
@@ -545,6 +572,17 @@ function sentences(): string[] {
 }
 
 writeFileSync(join(OUT, "index.html"), pageHTML(pageNodes, pageEdges, sentences(), SESSIONS));
+
+// ---------- audio stems (pre-generated, copied verbatim into the build) ----------
+const AUDIO_SRC = join(import.meta.dir, "..", "assets", "audio", "web");
+if (existsSync(AUDIO_SRC)) {
+  mkdirSync(join(OUT, "audio"), { recursive: true });
+  const stems = readdirSync(AUDIO_SRC).filter((f) => f.endsWith(".m4a"));
+  for (const f of stems) writeFileSync(join(OUT, "audio", f), readFileSync(join(AUDIO_SRC, f)));
+  console.log(`  audio: ${stems.length} stems → out/audio/`);
+} else {
+  console.warn("  (audio skipped — assets/audio/web/ not found)");
+}
 
 // static PNG (for OG cards / previews) — regenerate if rsvg-convert is present
 try {

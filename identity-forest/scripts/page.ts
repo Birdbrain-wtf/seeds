@@ -23,6 +23,8 @@ export type PNode = {
   aura: number; topics: PTopic[];
   z: number;        // topical depth, [-1,1] — the third dimension
   sess: number[];   // attended sessions as indices into SESSIONS — the fourth
+  note: number;     // one pentatonic midi note — presence deepens the voice
+  fam: number[];    // six timbral-family weights from the topic hue wheel
 };
 export type PEdge = [number, number, number]; // a, b, shared
 
@@ -160,7 +162,17 @@ export function pageHTML(nodes: PNode[], edges: PEdge[], sentences: string[], se
     background:var(--glass); -webkit-backdrop-filter:blur(8px); backdrop-filter:blur(8px); border:1px solid var(--hair); border-radius:999px;
     padding:7px 16px; opacity:0; transition:opacity .3s var(--ease); white-space:nowrap; z-index:6}
   .whisper.on{opacity:1}
-  .find{position:absolute; right:20px; top:16px; z-index:7}
+  .find{position:absolute; right:20px; top:16px; z-index:7; display:flex; align-items:center; gap:8px}
+  .snd{width:33px; height:33px; border-radius:50%; border:1px solid var(--hair); background:rgba(10,12,6,.62);
+    color:var(--faint); cursor:pointer; display:flex; align-items:center; justify-content:center; padding:0;
+    transition:color .3s, border-color .3s, box-shadow .3s}
+  .snd:hover{color:var(--ink); border-color:rgba(236,230,216,.35)}
+  .snd svg{width:15px; height:15px; display:block}
+  .snd .wav{opacity:0; transition:opacity .3s}
+  .snd.on{color:var(--gold); border-color:rgba(224,179,86,.5); box-shadow:0 0 14px -4px rgba(224,179,86,.5)}
+  .snd.on .wav{opacity:1}
+  .snd.loading{animation:sndload 1.1s ease-in-out infinite}
+  @keyframes sndload{0%,100%{opacity:.4}50%{opacity:1}}
   .find input{font-family:"JetBrains Mono",monospace; font-size:12px; padding:8px 14px; border-radius:999px; border:1px solid var(--hair);
     background:var(--glass); -webkit-backdrop-filter:blur(8px); backdrop-filter:blur(8px); color:var(--ink); width:150px; outline:none; transition:all .3s var(--ease)}
   .find input:focus{width:210px; border-color:rgba(236,230,216,.4)}
@@ -306,7 +318,7 @@ export function pageHTML(nodes: PNode[], edges: PEdge[], sentences: string[], se
     <div class="foot">We grow together.<svg width="14" height="14" viewBox="0 0 12 12" fill="none" stroke="#8fce5a" stroke-width="1.3" stroke-linecap="round"><path d="M5 10 C5 6 2 5 0.5 3 C4 4 5 6 5 8"/><path d="M5 10 C5 5 8 4 11 1 C7 3 5 5 5 8"/></svg></div>
   </div>
 
-  <div class="find"><input id="find" type="text" placeholder="find yourself" autocomplete="off" aria-label="Find a person"></div>
+  <div class="find"><button id="snd" class="snd" aria-label="Sound on or off" title="sound — real stems, sequenced from the record"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H3v6h3l5 4z" fill="currentColor" stroke="none"/><path class="wav" d="M15.5 8.5a5 5 0 0 1 0 7"/><path class="wav" d="M18.5 6a9 9 0 0 1 0 12"/></svg></button><input id="find" type="text" placeholder="find yourself" autocomplete="off" aria-label="Find a person"></div>
   <div class="whisper" id="whisper"></div>
   <div class="ticker" id="ticker" aria-live="polite"></div>
   <div class="hint" id="hint">drag to wander · scroll to lean in · double-click to step back</div>
@@ -331,6 +343,7 @@ export function pageHTML(nodes: PNode[], edges: PEdge[], sentences: string[], se
   <p>Humans mostly think in one story at a time — a list, a ranking, a line. This page is an experiment in building the dimensions up: <b>1D</b> flattens everyone to a single number and shows what that costs. <b>2D</b> gives relationships room to spread. <b>3D</b> adds depth as <em>what you think about</em> — and lets you stand where someone else stands, because the room genuinely looks different from each person's position. <b>4D</b> is time, the dimension the others are made of: the same web, watched being woven. None of the views is the truth; each is a telling. The record underneath doesn't change.</p>
   <div class="t" style="margin-top:18px">Trust posture</div>
   <p>Rendered deterministically from public Seed records in <code>vault/seeds/</code> — no keys, no model, no tracking, no server-side anything. The forest re-grows from the record on every build: <code>bun run identity-forest/scripts/build.ts</code>. Open source, Apache-2.0. Dotted circles are people present in the room but thin in the record — honest gaps, never faked.</p>
+  <p>Sound (the ⏻ by the search box, off by default): the timbres are real stems composed once by a sound model — Stable Audio 2.5 — and shipped as fixed files; but <em>who</em> sounds, at what pitch, in what blend, is a pure function of the record. Each person holds one note on a shared pentatonic scale — the more present, the deeper the voice — and each topic family a texture. Hover someone and you hear them; play the year and you hear each session as the chord of whoever was in the room. Nothing streams, nothing is tracked.</p>
 </footer>
 
 <script>
@@ -474,8 +487,8 @@ drawOrder.forEach((idx,rank)=>{
 svg.appendChild(labelSet); // hoist labels above every plant
 
 function hook(g,i){
-  g.addEventListener("pointerenter",()=>{ if(locked<0) light(i); });
-  g.addEventListener("pointerleave",()=>{ if(locked<0) unlight(); });
+  g.addEventListener("pointerenter",()=>{ if(locked<0){ light(i); voiceOf(i); } });
+  g.addEventListener("pointerleave",()=>{ if(locked<0){ unlight(); restFams(); } });
   g.addEventListener("click",(ev)=>{ ev.stopPropagation(); select(i); });
 }
 
@@ -535,7 +548,7 @@ function poem(idx){
   return s;
 }
 function select(idx){
-  locked = idx; light(idx);
+  locked = idx; light(idx); bloomOf(idx);
   const n = N[idx];
   document.getElementById("c-aura").style.background = \`linear-gradient(90deg, hsl(\${n.aura} 80% 62%), hsl(\${(n.aura+50)%360} 80% 66%))\`;
   document.getElementById("c-name").textContent = n.name;
@@ -561,7 +574,7 @@ function select(idx){
   document.getElementById("year").style.display = n.sess.length? "" : "none";
   card.classList.add("on");
 }
-function deselect(){ locked=-1; unlight(); card.classList.remove("on"); }
+function deselect(){ locked=-1; unlight(); card.classList.remove("on"); restFams(); }
 document.getElementById("cardx").addEventListener("click",deselect);
 svg.addEventListener("click",(e)=>{ if(e.target===svg) deselect(); });
 document.addEventListener("keydown",(e)=>{ if(e.key==="Escape") deselect(); });
@@ -573,7 +586,7 @@ const topTopics = Object.entries(topicTotals).sort((a,b)=>b[1].s-a[1].s).slice(0
 const chips = document.getElementById("chips");
 let lens = null;
 function applyLens(topic){
-  lens = topic;
+  lens = topic; lensSound(topic);
   document.querySelectorAll(".chip").forEach(c=>c.classList.toggle("on", c.dataset.t===topic));
   if(!topic){ svg.classList.remove("haslens");
     svg.querySelectorAll(".leafg").forEach(x=>x.classList.remove("match"));
@@ -844,7 +857,7 @@ function setDim(d){
     if(!wasCanvas){ cam={yaw:0,pitch:0,dist:1500,tx:0,ty:0,tz:0}; camTo(CAM0, 1500); }
     zuT0=performance.now(); zuAnim=true;
   }
-  if(d===4){ T4=0; scrub.value="0"; playing=!REDUCED; lastStep=performance.now(); updPlay(); updTlabel(); }
+  if(d===4){ T4=0; scrub.value="0"; playing=!REDUCED; lastStep=performance.now(); updPlay(); updTlabel(); sessionSound(); }
   else { playing=false; updPlay(); }
   requestAnimationFrame(sizeCanvas);
   startLoop();
@@ -866,7 +879,7 @@ const tlabel=document.getElementById("tlabel");
 function updPlay(){ tplay.textContent = playing? "⏸" : "▶"; }
 function updTlabel(){ tlabel.textContent = SESS[T4]+" · "+(bySess[T4]?bySess[T4].length:0)+" present · "+(T4+1)+"/"+S_COUNT; yearCaption(); }
 tplay.addEventListener("click",()=>{ playing=!playing; if(playing && T4>=S_COUNT-1){ T4=0; scrub.value="0"; updTlabel(); } lastStep=performance.now(); updPlay(); });
-scrub.addEventListener("input",()=>{ T4=+scrub.value; playing=false; updPlay(); updTlabel(); });
+scrub.addEventListener("input",()=>{ T4=+scrub.value; playing=false; updPlay(); updTlabel(); sessionSound(); });
 
 // ---- stand with them: the relativist camera ----
 const standBtn=document.getElementById("stand");
@@ -966,7 +979,8 @@ addEventListener("pointermove",(e)=>{
       const n=N[best];
       whisper.textContent=n.name+" — "+(n.att>0?("present "+n.att+" time"+(n.att===1?"":"s")):"faint in the record")+" · "+nbr[best].length+" companion"+(nbr[best].length===1?"":"s");
       whisper.classList.add("on");
-    } else if(best<0 && locked<0 && STAND<0) whisper.classList.remove("on");
+      voiceOf(best);
+    } else if(best<0 && locked<0 && STAND<0){ whisper.classList.remove("on"); restFams(); }
   }
 });
 addEventListener("pointerup",(e)=>{
@@ -991,7 +1005,7 @@ function frame(t){
   if((MODE===3||MODE===4) && !REDUCED && STAND<0 && !camTween && !dragC && t-lastUser>5000) cam.yaw+=0.00006*dt;
   if(MODE===4 && playing && t-lastStep>1650){
     lastStep=t;
-    if(T4<S_COUNT-1){ T4++; scrub.value=String(T4); updTlabel(); }
+    if(T4<S_COUNT-1){ T4++; scrub.value=String(T4); updTlabel(); sessionSound(); }
     else { playing=false; updPlay(); updTlabel(); }
   }
   draw(t);
@@ -1167,6 +1181,100 @@ function draw(t){
     cx2.globalAlpha=1;
   }
 }
+
+// ---------- sound (off by default; real stems, deterministic sequencing) ----------
+// The timbres were composed once by a sound model (Stable Audio 2.5) and ship
+// as fixed static stems. WHO sounds, at what pitch, in what blend, is a pure
+// function of the record: one pentatonic note per person (presence deepens the
+// voice), one texture per topic family, sessions as chords of whoever was in
+// the room. Nothing streams, nothing is tracked, no randomness.
+const sndBtn = document.getElementById("snd");
+const SND_BASE = /\\/raw\\/forest$/.test(location.pathname) ? "/raw/forest-audio/" : "audio/";
+const FAMS = ["fam-red","fam-yellow","fam-green","fam-cyan","fam-blue","fam-magenta"];
+const PLUCK_ROOT = 48; // measured C3 fundamental of the pluck stem
+let AC=null, BUF={}, sndOn=false, sndReady=false, sndLoading=false, gMaster=null, gFams=[];
+async function sndLoad(){
+  sndLoading=true; sndBtn.classList.add("loading");
+  AC = new (window.AudioContext||window.webkitAudioContext)();
+  gMaster = AC.createGain(); gMaster.gain.value=0.9; gMaster.connect(AC.destination);
+  const names = ["bed-forest","note-pluck","chord-bloom","session-pulse"].concat(FAMS);
+  await Promise.all(names.map(function(n){
+    return fetch(SND_BASE+n+".m4a")
+      .then(function(r){ if(!r.ok) throw new Error(n); return r.arrayBuffer(); })
+      .then(function(ab){ return new Promise(function(res,rej){ AC.decodeAudioData(ab,res,rej); }); })
+      .then(function(b){ BUF[n]=b; });
+  }));
+  const bed=AC.createBufferSource(); bed.buffer=BUF["bed-forest"]; bed.loop=true;
+  bed.loopStart=0.1; bed.loopEnd=BUF["bed-forest"].duration-0.15;
+  const gBed=AC.createGain(); gBed.gain.value=0.5; bed.connect(gBed); gBed.connect(gMaster); bed.start();
+  gFams=FAMS.map(function(n){
+    const src=AC.createBufferSource(); src.buffer=BUF[n]; src.loop=true;
+    src.loopStart=0.1; src.loopEnd=BUF[n].duration-0.15;
+    const g=AC.createGain(); g.gain.value=0; src.connect(g); g.connect(gMaster); src.start();
+    return g;
+  });
+  sndReady=true; sndLoading=false; sndBtn.classList.remove("loading");
+}
+function setFams(w, scale){
+  if(!sndReady) return;
+  for(let i=0;i<6;i++) gFams[i].gain.setTargetAtTime(w? w[i]*scale : 0, AC.currentTime, 0.4);
+}
+function shot(name, rate, vel, delay){
+  if(!sndOn||!sndReady||!BUF[name]) return;
+  const s=AC.createBufferSource(); s.buffer=BUF[name]; s.playbackRate.value=rate||1;
+  const g=AC.createGain(); g.gain.value=(vel==null?0.5:vel);
+  s.connect(g); g.connect(gMaster); s.start(AC.currentTime+(delay||0));
+}
+function rateFor(midi){ return Math.pow(2,(midi-PLUCK_ROOT)/12); }
+let lastVoiceI=-1, lastVoiceT=0;
+function voiceOf(i){
+  if(!sndOn||!sndReady) return;
+  const now=performance.now();
+  if(i===lastVoiceI && now-lastVoiceT<420) return;
+  if(now-lastVoiceT<130) return;
+  lastVoiceI=i; lastVoiceT=now;
+  shot("note-pluck", rateFor(N[i].note), 0.55);
+  setFams(N[i].fam, 0.5);
+}
+function restFams(){ if(sndOn) setFams(null,0); }
+function bloomOf(i){
+  if(!sndOn||!sndReady) return;
+  const m=Math.max(53,Math.min(65,N[i].note));
+  shot("chord-bloom", Math.pow(2,(m-60)/12), 0.5);
+  setFams(N[i].fam, 0.55);
+}
+let lastSessT=0;
+function sessionSound(){
+  if(!sndOn||!sndReady||MODE!==4) return;
+  const now=performance.now(); if(now-lastSessT<150) return; lastSessT=now;
+  const present=bySess[T4]||[];
+  shot("session-pulse", 1, 0.45);
+  present.slice().sort(function(a,b){ return N[b].att-N[a].att; }).slice(0,8)
+    .forEach(function(i,k){ shot("note-pluck", rateFor(N[i].note), 0.3, 0.09*k+0.12); });
+  const w=[0,0,0,0,0,0];
+  present.forEach(function(i){ N[i].fam.forEach(function(v,f){ w[f]+=v; }); });
+  const sum=w.reduce(function(a,b){ return a+b; },0);
+  setFams(sum? w.map(function(v){ return v/sum; }) : null, sum?0.45:0);
+}
+function lensSound(topic){
+  if(!sndOn||!sndReady) return;
+  if(!topic){ restFams(); return; }
+  let hue=-1;
+  for(const n of N){ const t=n.topics.find(function(x){ return x.topic===topic; }); if(t){ hue=t.hue; break; } }
+  if(hue<0){ restFams(); return; }
+  const w=[0,0,0,0,0,0]; w[Math.floor(hue/60)%6]=1;
+  setFams(w, 0.5);
+}
+sndBtn.addEventListener("click", async function(){
+  if(sndLoading) return;
+  if(!AC){
+    try{ sndOn=true; await sndLoad(); await AC.resume(); sndBtn.classList.add("on"); }
+    catch(e){ sndOn=false; sndBtn.classList.remove("loading"); sndBtn.title="sound unavailable"; }
+    return;
+  }
+  if(sndOn){ sndOn=false; sndBtn.classList.remove("on"); AC.suspend(); }
+  else { sndOn=true; sndBtn.classList.add("on"); AC.resume(); }
+});
 </script>
 </body></html>`;
 }

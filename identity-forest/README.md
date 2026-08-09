@@ -79,6 +79,41 @@ stamped with perspective scaling); 2D remains the original SVG. All positions,
 depths and session indices are precomputed in `build.ts` and shipped in `DATA`
 — the client still only draws.
 
+## Sound (real stems, deterministic score)
+
+The ⏻ button beside the search box (off by default) makes the forest audible.
+The design honours both halves of the trust contract:
+
+- **The instrument is real.** Ten timbres composed once by a sound model
+  (Stable Audio 2.5 via fal.ai — see `assets/audio/manifest.json` for every
+  prompt, seed and processing step) and shipped as fixed static stems in
+  `assets/audio/web/*.m4a`. No hand-synthesised WAVs — a text LLM has no model
+  of timbre.
+- **The score is the record.** Who sounds, when, at what pitch, in what blend
+  is a pure deterministic function of the Seed data, computed in `build.ts`:
+  - each person holds **one note on a shared C-major pentatonic scale**
+    (`noteOf()`) — the more sessions attended, the deeper the voice, mirroring
+    core size; snapping to the pentatonic means any combination of people
+    sounds consonant.
+  - each topic maps to one of **six timbral families** (`famOf()`) on the same
+    hue wheel the visuals use — cello (red), kalimba (yellow), harp (green),
+    bowls (cyan), pad (blue), choir (magenta). A person's texture mix is their
+    topic profile.
+  - **hover** someone → their pluck at their pitch + their family blend fades in;
+    **card** → a chord bloom shifted toward their note; **topic lens** → that
+    family solos; **4D playback** → each session is a low pulse under the
+    staggered plucks of whoever was in the room (ordered by presence, capped at
+    8 voices) over the room's blended texture. A quiet dawn-forest bed is the
+    resting state.
+- Runtime: Web Audio, buffers fetched once from the build output
+  (`audio/` relative to the page), all-gain
+  ramps via `setTargetAtTime`. Off by default; suspend/resume on toggle;
+  nothing streams, nothing is tracked.
+
+Regenerating a stem changes the *instrument*, never the *score* — and model
+outputs are not bit-reproducible, so regeneration is a deliberate act, recorded
+in the manifest.
+
 ## Published
 
 Live + public at **https://rw.zo.space/seeds/forest** (page route iframes
