@@ -59,6 +59,7 @@ const CONF_SOLIDITY: Record<string, number> = { high: 1, medium: 0.66, low: 0.38
 
 // ---------- parse a Seed ----------
 type Topic = { topic: string; sessions: number };
+type Quote = { t: string; s: string; at: string }; // text, session id, timestamp
 type Seed = {
   slug: string;
   name: string;
@@ -67,6 +68,7 @@ type Seed = {
   attended: string[];
   mentioned: string[];
   topics: Topic[];
+  quotes: Quote[];
 };
 
 function parseSeed(file: string): Seed | null {
@@ -105,6 +107,23 @@ function parseSeed(file: string): Seed | null {
     }
   }
 
+  // notable utterances — the person's real, provenance-stamped words.
+  // blocks of `> text` lines, each closed by `> — [[CSnn]] @ mm:ss`
+  const quotes: Quote[] = [];
+  const uq = body.match(/##\s*Notable utterances\s*\n([\s\S]*?)(?=\n##\s|$)/);
+  if (uq) {
+    let texts: string[] = [];
+    for (const line of uq[1].split("\n")) {
+      if (!line.trim().startsWith(">")) continue;
+      const t = line.replace(/^\s*>\s?/, "").trim();
+      const attr = t.match(/^—\s*\[\[([^\]]+)\]\](?:\s*@\s*(\S+))?/);
+      if (attr) {
+        if (texts.length) quotes.push({ t: texts.join(" "), s: attr[1], at: attr[2] || "" });
+        texts = [];
+      } else if (t) texts.push(t);
+    }
+  }
+
   return {
     slug,
     name: scalar("display_name") || slug,
@@ -113,6 +132,7 @@ function parseSeed(file: string): Seed | null {
     attended: list("sessions_attended"),
     mentioned: list("sessions_mentioned_in"),
     topics,
+    quotes,
   };
 }
 
@@ -546,6 +566,7 @@ const pageNodes: PNode[] = seeds.map((s, i) => ({
   sess: s.attended.map((id) => sessIdx.get(id)!).filter((v) => v !== undefined).sort((a, b) => a - b),
   note: noteOf(s),
   fam: famOf(s),
+  q: s.quotes.slice(0, 3),
 }));
 const pageEdges: PEdge[] = edges.map((e) => [e.a, e.b, e.shared]);
 
@@ -567,6 +588,13 @@ function sentences(): string[] {
   for (const s of holders) out.push(`${s.name} is holding ${s.actionItems} open intention${s.actionItems === 1 ? "" : "s"}.`);
   const faint = seeds.filter((s) => s.attended.length === 0).length;
   if (faint > 0) out.push(`${faint} people are in the room but faint in the record — honest gaps, never faked.`);
+  // the community's own words — short real utterances, deterministic order
+  const quoted = seeds
+    .flatMap((s) => s.quotes.map((q) => ({ ...q, name: s.name })))
+    .filter((q) => q.t.length <= 105)
+    .sort((a, b) => a.s.localeCompare(b.s) || a.name.localeCompare(b.name))
+    .slice(0, 6);
+  for (const q of quoted) out.push(`“${q.t}” — ${q.name}, ${q.s}`);
   out.push(`${totalSharedTies} shared sessions, witnessed — nothing here is inferred.`);
   return out;
 }
