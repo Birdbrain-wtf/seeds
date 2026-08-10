@@ -37,9 +37,16 @@ analytics, no randomness. Interactions:
 
 - organisms **breathe and sway** (per-slug deterministic phase; disabled under `prefers-reduced-motion`)
 - **hover** a person → their web lights in their aura hue, everyone unconnected fades; whisper caption
-- **click** → their seed card: vitals, an italic "poem" derived from the record, topic threads, strongest ties (clickable — walk the graph)
+- **whispered utterances** — linger on someone (~1.5s) and the whisper crossfades to a real,
+  provenance-stamped sentence they actually said (`## Notable utterances` in the Seed, session + timestamp);
+  repeat visits rotate through their quotes. The forest only ever speaks in the community's own words.
+- **click** → their seed card: vitals, an italic "poem" derived from the record, an **"In their words"**
+  section (their utterances with session stamps), topic threads, strongest ties (clickable — walk the graph)
 - **topic lens** — chips light one thread across the whole forest, everyone else recedes
-- **ticker** — true sentences generated from the record, cycling
+- **ticker** — true sentences generated from the record, cycling (including a few short real utterances, attributed)
+- **4D speaks** — during time playback, when a session someone spoke in lands, their words surface after
+  the caption's beat and the playback holds that frame longer (*time slows when someone speaks*); in
+  watch-their-year mode the seat's own words appear as "you said this — CSnn @ t"
 - **find yourself** — search flies the viewport to your organism and opens your card
 - pan / wheel-zoom / double-click reset
 

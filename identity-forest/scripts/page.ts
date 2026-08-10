@@ -25,6 +25,7 @@ export type PNode = {
   sess: number[];   // attended sessions as indices into SESSIONS — the fourth
   note: number;     // one pentatonic midi note — presence deepens the voice
   fam: number[];    // six timbral-family weights from the topic hue wheel
+  q: { t: string; s: string; at: string }[]; // real utterances: text, session, timestamp
 };
 export type PEdge = [number, number, number]; // a, b, shared
 
@@ -162,6 +163,11 @@ export function pageHTML(nodes: PNode[], edges: PEdge[], sentences: string[], se
     background:var(--glass); -webkit-backdrop-filter:blur(8px); backdrop-filter:blur(8px); border:1px solid var(--hair); border-radius:999px;
     padding:7px 16px; opacity:0; transition:opacity .3s var(--ease); white-space:nowrap; z-index:6}
   .whisper.on{opacity:1}
+  /* a whispered utterance — the person's real words, wider + serif */
+  .whisper.qq{font-family:Newsreader,Georgia,serif; font-style:italic; font-size:15.5px; line-height:1.45;
+    letter-spacing:0; max-width:min(620px,86vw); white-space:normal; text-align:center; border-radius:16px; padding:10px 20px}
+  .whisper.qq .src{display:block; font-family:"JetBrains Mono",monospace; font-style:normal; font-size:9.5px;
+    letter-spacing:.16em; text-transform:uppercase; color:var(--faint); margin-top:6px}
   .find{position:absolute; right:20px; top:16px; z-index:7; display:flex; align-items:center; gap:8px}
   .snd{width:33px; height:33px; border-radius:50%; border:1px solid var(--hair); background:rgba(10,12,6,.62);
     color:var(--faint); cursor:pointer; display:flex; align-items:center; justify-content:center; padding:0;
@@ -225,6 +231,10 @@ export function pageHTML(nodes: PNode[], edges: PEdge[], sentences: string[], se
   .tie .bar{height:3px; border-radius:99px; background:rgba(236,230,216,.12); flex:1; position:relative; overflow:hidden}
   .tie .bar i{position:absolute; inset:0; right:auto; background:var(--gold); border-radius:99px; box-shadow:0 0 8px rgba(224,179,86,.7)}
   .tie .c{font-family:"JetBrains Mono",monospace; font-size:11px; color:var(--faint); flex:none}
+  .card .quote{font-family:Newsreader,Georgia,serif; font-style:italic; font-size:14.5px; line-height:1.5; color:#cfc8b6;
+    border-left:2px solid var(--hair); padding:2px 0 2px 12px; margin:0 0 12px}
+  .card .quote .src{display:block; font-family:"JetBrains Mono",monospace; font-style:normal; font-size:9px;
+    letter-spacing:.14em; text-transform:uppercase; color:var(--faint); margin-top:5px}
   .card .x{position:absolute; top:14px; right:14px; border:1px solid var(--hair); background:rgba(236,230,216,.06); color:var(--muted); width:30px; height:30px; border-radius:50%; cursor:pointer; font-size:15px; line-height:1}
   .card .x:hover{background:rgba(236,230,216,.14); color:var(--ink)}
 
@@ -330,6 +340,7 @@ export function pageHTML(nodes: PNode[], edges: PEdge[], sentences: string[], se
   <h2 id="c-name"></h2>
   <div class="meta" id="c-meta"></div>
   <p class="poem" id="c-poem"></p>
+  <div id="c-words-wrap"><h3>In their words</h3><div id="c-words"></div></div>
   <h3>Threads of thought</h3>
   <div id="c-topics"></div>
   <h3>Most often in the room with</h3>
@@ -342,7 +353,7 @@ export function pageHTML(nodes: PNode[], edges: PEdge[], sentences: string[], se
   <div class="t">Why dimensions</div>
   <p>Humans mostly think in one story at a time — a list, a ranking, a line. This page is an experiment in building the dimensions up: <b>1D</b> flattens everyone to a single number and shows what that costs. <b>2D</b> gives relationships room to spread. <b>3D</b> adds depth as <em>what you think about</em> — and lets you stand where someone else stands, because the room genuinely looks different from each person's position. <b>4D</b> is time, the dimension the others are made of: the same web, watched being woven. None of the views is the truth; each is a telling. The record underneath doesn't change.</p>
   <div class="t" style="margin-top:18px">Trust posture</div>
-  <p>Rendered deterministically from public Seed records in <code>vault/seeds/</code> — no keys, no model, no tracking, no server-side anything. The forest re-grows from the record on every build: <code>bun run identity-forest/scripts/build.ts</code>. Open source, Apache-2.0. Dotted circles are people present in the room but thin in the record — honest gaps, never faked.</p>
+  <p>Rendered deterministically from public Seed records in <code>vault/seeds/</code> — no keys, no model, no tracking, no server-side anything. The forest re-grows from the record on every build: <code>bun run identity-forest/scripts/build.ts</code>. Open source, Apache-2.0. Dotted circles are people present in the room but thin in the record — honest gaps, never faked. The whispered sentences are real utterances from the sessions, provenance-stamped (session + timestamp) — the forest only ever speaks in the community's own words.</p>
   <p>Sound (the ⏻ by the search box, off by default): the timbres are real stems composed once by a sound model — Stable Audio 2.5 — and shipped as fixed files; but <em>who</em> sounds, at what pitch, in what blend, is a pure function of the record. Each person holds one note on a shared pentatonic scale — the more present, the deeper the voice — and each topic family a texture. Hover someone and you hear them; play the year and you hear each session as the chord of whoever was in the room. Nothing streams, nothing is tracked.</p>
 </footer>
 
@@ -497,6 +508,31 @@ requestAnimationFrame(()=>requestAnimationFrame(()=>document.body.classList.add(
 // ---------- hover: ignite the web ----------
 const whisper = document.getElementById("whisper");
 let locked = -1;
+
+// ---------- whispered utterances — the record speaking in its own words ----------
+// quotes indexed by session (for 4D playback); rotation counters keep repeat
+// visits fresh. all quote text is real, provenance-stamped Seed data.
+const QBS = {}; // session index -> [{i, t, at}]
+N.forEach((n,i)=> (n.q||[]).forEach(qt=>{ const k=SESS.indexOf(qt.s); if(k>=0) (QBS[k]=QBS[k]||[]).push({i, t:qt.t, at:qt.at}); }));
+let quoteDwell=0; const quoteRot={};
+function showQuote(t, src){
+  whisper.textContent="";
+  whisper.classList.add("qq");
+  whisper.appendChild(document.createTextNode("“"+t+"”"));
+  const s=document.createElement("span"); s.className="src"; s.textContent=src; whisper.appendChild(s);
+  whisper.classList.add("on");
+}
+function plainWhisper(){ whisper.classList.remove("qq"); }
+function armQuote(idx, delay){
+  clearTimeout(quoteDwell);
+  const qs=N[idx].q||[];
+  if(!qs.length) return;
+  quoteDwell=setTimeout(()=>{
+    const r=quoteRot[idx]||0; quoteRot[idx]=r+1;
+    const qt=qs[r%qs.length];
+    showQuote(qt.t, N[idx].name+" · "+qt.s+(qt.at?" @ "+qt.at:""));
+  }, delay);
+}
 function light(idx){
   const con = new Set(nbr[idx].map(x=>x.o)); con.add(idx);
   orgEls.forEach((g,i)=> g.classList.toggle("dim", !con.has(i)));
@@ -517,8 +553,10 @@ function light(idx){
     }
   });
   const n=N[idx];
+  plainWhisper();
   whisper.textContent = \`\${n.name} — \${n.att>0?\`present \${n.att} time\${n.att===1?"":"s"}\`:"faint in the record"} · \${nbr[idx].length} companion\${nbr[idx].length===1?"":"s"}\`;
   whisper.classList.add("on");
+  armQuote(idx, 1500); // linger, and they speak
 }
 function unlight(){
   orgEls.forEach(g=>g.classList.remove("dim"));
@@ -531,6 +569,7 @@ function unlight(){
     ed.under.setAttribute("opacity",(ed.op*0.3).toFixed(3));
     ed.g.style.opacity = "1";
   });
+  clearTimeout(quoteDwell); plainWhisper();
   if(YEAR>=0 && MODE===4){ yearCaption(); } else { whisper.classList.remove("on"); }
 }
 
@@ -554,6 +593,17 @@ function select(idx){
   document.getElementById("c-name").textContent = n.name;
   document.getElementById("c-meta").textContent = \`\${n.att} attended · \${n.men} mentioned · \${n.conf} confidence\`;
   document.getElementById("c-poem").textContent = poem(idx);
+  const ww = document.getElementById("c-words-wrap"), wl = document.getElementById("c-words");
+  wl.innerHTML="";
+  const qs = n.q||[];
+  ww.style.display = qs.length? "" : "none";
+  qs.forEach(qt=>{
+    const d=document.createElement("blockquote"); d.className="quote";
+    d.style.borderLeftColor = \`hsl(\${n.aura} 70% 55% / .55)\`;
+    d.appendChild(document.createTextNode("“"+qt.t+"”"));
+    const s=document.createElement("span"); s.className="src"; s.textContent=qt.s+(qt.at?" @ "+qt.at:""); d.appendChild(s);
+    wl.appendChild(d);
+  });
   const tt = document.getElementById("c-topics"); tt.innerHTML="";
   n.topics.slice().sort((a,b)=>b.sessions-a.sessions).forEach(t=>{
     const d=document.createElement("div"); d.className="trow";
@@ -877,7 +927,24 @@ const scrub=document.getElementById("tscrub"); scrub.max=String(Math.max(0,S_COU
 const tplay=document.getElementById("tplay");
 const tlabel=document.getElementById("tlabel");
 function updPlay(){ tplay.textContent = playing? "⏸" : "▶"; }
-function updTlabel(){ tlabel.textContent = SESS[T4]+" · "+(bySess[T4]?bySess[T4].length:0)+" present · "+(T4+1)+"/"+S_COUNT; yearCaption(); }
+// as a session lands in 4D, let someone who spoke in it speak again — after the
+// caption has had its beat. in watch-year mode, prefer the seat's own words.
+let sessQTimer=0; const sessQRot={};
+function armSessionQuote(){
+  clearTimeout(sessQTimer);
+  if(MODE!==4) return;
+  const k=T4, pool=QBS[k]||[];
+  if(!pool.length) return;
+  const own = YEAR>=0? pool.filter(x=>x.i===YEAR) : [];
+  const use = own.length? own : pool;
+  sessQTimer=setTimeout(()=>{
+    if(MODE!==4 || T4!==k || (locked>=0 && YEAR<0)) return;
+    const r=sessQRot[k]||0; sessQRot[k]=r+1;
+    const qt=use[r%use.length];
+    showQuote(qt.t, (YEAR>=0&&qt.i===YEAR? "you said this — " : N[qt.i].name+" · ")+SESS[k]+(qt.at?" @ "+qt.at:""));
+  }, 1100);
+}
+function updTlabel(){ tlabel.textContent = SESS[T4]+" · "+(bySess[T4]?bySess[T4].length:0)+" present · "+(T4+1)+"/"+S_COUNT; yearCaption(); armSessionQuote(); }
 tplay.addEventListener("click",()=>{ playing=!playing; if(playing && T4>=S_COUNT-1){ T4=0; scrub.value="0"; updTlabel(); } lastStep=performance.now(); updPlay(); });
 scrub.addEventListener("input",()=>{ T4=+scrub.value; playing=false; updPlay(); updTlabel(); sessionSound(); });
 
@@ -938,7 +1005,7 @@ function yearCaption(){
   } else {
     msg=SESS[T4]+" — you weren't in the room · "+(bySess[T4]?bySess[T4].length:0)+" were";
   }
-  whisper.textContent=msg; whisper.classList.add("on");
+  plainWhisper(); whisper.textContent=msg; whisper.classList.add("on");
 }
 yearBtn.addEventListener("click",()=>{ if(locked>=0) watchYear(locked); });
 
@@ -1003,7 +1070,7 @@ function frame(t){
   if(zuAnim){ const k=Math.min(1,(t-zuT0)/1300); zUnfold=zuFrom+(1-zuFrom)*(1-Math.pow(1-k,3)); if(k>=1) zuAnim=false; }
   const dt = frame._lt? t-frame._lt : 16; frame._lt=t;
   if((MODE===3||MODE===4) && !REDUCED && STAND<0 && !camTween && !dragC && t-lastUser>5000) cam.yaw+=0.00006*dt;
-  if(MODE===4 && playing && t-lastStep>1650){
+  if(MODE===4 && playing && t-lastStep>((QBS[T4]&&QBS[T4].length)?3600:1650)){ // time slows when someone speaks
     lastStep=t;
     if(T4<S_COUNT-1){ T4++; scrub.value=String(T4); updTlabel(); sessionSound(); }
     else { playing=false; updPlay(); updTlabel(); }
