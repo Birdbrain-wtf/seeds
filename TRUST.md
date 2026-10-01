@@ -27,6 +27,10 @@ Seeds ships under two governing constraints:
 | Seed → key claim (passkey binding) | zero-trust (target) | the user's own key is the anchor |
 | Frictionless membership onboarding | custodial-with-reason | see below — the one accepted exception |
 | Query → attribution → micro-payout | trust-minimised (target) | payer signs the split; a facilitator only verifies; no custody of routed funds |
+| Seeds chain admission (`chain/`) | trust-minimised | members admit by witnessing against shared evidence; every rule is on-chain and every mint can be checked by anyone |
+| Seeds chain member key | zero-trust | derived on the member's own device from their passkey; no operator ever holds it, and with no fees nobody has to sponsor it |
+| Seeds chain founding control | trust-minimised, with a stated end | a founder's upgrade passes unless a third of members object; members end that control by simple majority, once, for good |
+| minijam validators | trust-minimised (lab) | a named validator set, said plainly; opening it up is the published next step, not an assumption |
 
 ## The one accepted custody reason
 
@@ -37,6 +41,11 @@ member can move to full self-custody at any time. That is the only custody this
 project permits, and only because the alternative (requiring token acquisition
 before first participation) excludes exactly the people participation-based
 identity is for.
+
+The Seeds chain doesn't need the exception at all. It charges no fees, so a
+newcomer needs no tokens to write, and their key comes from their own passkey,
+so nobody mints or derives it for them. The exception stays only where a
+membership still lives on a chain that charges for it.
 
 ## What was retired, and why
 
@@ -61,3 +70,11 @@ anonymous contributions — linkable back only by the person themselves. The
 resistance property comes from value and weight flowing through *witnessed,
 real participation and relationships*: a thousand puppet identities that never
 sat in a room with anyone carry no weight.
+
+On the chain the same stance meets a sharper constraint, because a membership
+carries a vote and can carry a validator seat. So an alter ego contributes off the
+chain under its owner's canonical Seed, and becomes a separate member only if two members
+witness it. Each witness has a small allowance per era, and if the alter ego is
+later expelled as a duplicate, everyone who vouched for it takes a strike. The
+chain can't tell whether two keys are one person. The witnesses carry that, and
+they carry the cost of getting it wrong.

@@ -140,10 +140,19 @@ async def call_zo(session: aiohttp.ClientSession, prompt: str) -> str:
 
 
 def strip_codefence(text: str) -> str:
-    """If the model wrapped output in ```json/yaml ... ```, strip it."""
+    """If the model wrapped output in ```json/yaml ... ```, strip it.
+
+    Handles the single-fence case and the repeat case, where the model emits the
+    same document twice back to back (```` ``````json ````). CS32 (2026-09-07)
+    failed that way: two valid blocks concatenated, so a whole-string parse died
+    with "Extra data" and the session landed in the snapshot with no extraction.
+    """
     text = text.strip()
     m = re.match(r"^```(?:json|yaml|yml)?\s*\n(.*?)\n```\s*$", text, re.DOTALL)
-    return m.group(1).strip() if m else text
+    if m:
+        return m.group(1).strip()
+    blocks = re.findall(r"```(?:json|yaml|yml)?\s*\n(.*?)\n```", text, re.DOTALL)
+    return blocks[0].strip() if blocks else text
 
 
 def parse_output(raw: str):
@@ -152,6 +161,12 @@ def parse_output(raw: str):
     try:
         return json.loads(stripped)
     except json.JSONDecodeError:
+        pass
+    # An unfenced repeat, or trailing prose after the document: take the first
+    # complete JSON object and ignore whatever follows it.
+    try:
+        return json.JSONDecoder().raw_decode(stripped)[0]
+    except ValueError:
         pass
     return yaml.safe_load(stripped)
 

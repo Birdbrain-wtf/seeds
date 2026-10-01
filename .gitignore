@@ -3,3 +3,5 @@ __pycache__/
 node_modules/
 *.pyc
 .DS_Store
+target/
+.data/
