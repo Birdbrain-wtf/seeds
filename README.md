@@ -20,7 +20,8 @@ deterministic render of a real community's Seeds in 1D / 2D / 3D / 4D.
   canonical Seed stays bound to the person's own keys, while alter egos and
   anonymous contributions remain possible — linkable back only by the person
   themselves. Sybil-resistance comes from weight flowing through *witnessed,
-  real participation*, never from forbidding multiple identities.
+  real participation*, never from forbidding multiple identities. Faces
+  contribute; only the Seed holds a membership and a vote.
 - **Honest gaps, never faked.** People present in the room but thin in the
   record render as gaps, not fabrications.
 

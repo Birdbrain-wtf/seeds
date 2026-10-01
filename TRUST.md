@@ -72,9 +72,17 @@ real participation and relationships*: a thousand puppet identities that never
 sat in a room with anyone carry no weight.
 
 On the chain the same stance meets a sharper constraint, because a membership
-carries a vote and can carry a validator seat. So an alter ego contributes off the
-chain under its owner's canonical Seed, and becomes a separate member only if two members
-witness it. Each witness has a small allowance per era, and if the alter ego is
-later expelled as a duplicate, everyone who vouched for it takes a strike. The
+carries a vote and can carry a validator seat. So the hierarchy is fixed: one
+person, one canonical Seed, one membership. Pseudonyms and alter egos never hold
+a membership of their own. They contribute under their owner's Seed, and the
+credit flows back to it when the owner chooses to claim it, but the vote stays
+with the Seed.
+
+A new membership is for a new person. Two members witness that, each from a
+small allowance per era, and if the new member later turns out to be someone's
+second face, it is expelled and everyone who vouched for it takes a strike. The
 chain can't tell whether two keys are one person. The witnesses carry that, and
-they carry the cost of getting it wrong.
+they carry the cost of getting it wrong. Once a personhood registry exists
+underneath, it can enforce one membership per person directly, and witnessing
+goes back to being evidence of participation rather than a guard against
+duplicates.
