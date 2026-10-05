@@ -2,7 +2,7 @@
 """
 Chaos Sessions — Extract stage.
 
-Reads a session's transcript + summary, sends them to Zo for structured extraction,
+Reads a session's transcript + summary, sends them to a language model for structured extraction,
 writes per-section YAML files into CS{NN}/extract/<lang>/.
 
 Idempotent: re-running overwrites the extract folder for that session+language.
@@ -20,9 +20,11 @@ import aiohttp
 import yaml
 
 SESSIONS_ROOT = Path(os.environ.get("SEEDS_SESSIONS", "vault/calls/chaos-sessions"))
-MODEL = os.environ.get("ZO_EXTRACT_MODEL", "byok:cb40b4af-1b7f-4288-af25-2df72a7b2378")
-ZO_API = "https://api.zo.computer/zo/ask"
-TOKEN = os.environ["ZO_CLIENT_IDENTITY_TOKEN"]
+# The model is a setting. The default is a model on your own machine; any
+# OpenAI-compatible chat endpoint (Ollama, llama.cpp, vLLM, a hosted one) works.
+LLM_URL = os.environ.get("SEEDS_LLM_URL", "http://localhost:11434/v1/chat/completions")
+MODEL = os.environ.get("SEEDS_LLM_MODEL", "qwen2.5:14b-instruct")
+TOKEN = os.environ.get("SEEDS_LLM_KEY", "")
 
 EXTRACT_SECTIONS = [
     "speaker_map",     # Speaker N → display_name (best inference)
@@ -128,15 +130,18 @@ def build_prompt(session_id: str, lang: str) -> str:
     )
 
 
-async def call_zo(session: aiohttp.ClientSession, prompt: str) -> str:
+async def call_llm(session: aiohttp.ClientSession, prompt: str) -> str:
+    headers = {"content-type": "application/json"}
+    if TOKEN:
+        headers["authorization"] = f"Bearer {TOKEN}"
     async with session.post(
-        ZO_API,
-        headers={"authorization": TOKEN, "content-type": "application/json"},
-        json={"input": prompt, "model_name": MODEL},
+        LLM_URL,
+        headers=headers,
+        json={"model": MODEL, "messages": [{"role": "user", "content": prompt}]},
         timeout=aiohttp.ClientTimeout(total=600),
     ) as resp:
         data = await resp.json()
-        return data["output"]
+        return data["choices"][0]["message"]["content"]
 
 
 def strip_codefence(text: str) -> str:
@@ -190,7 +195,7 @@ def write_extract(session_id: str, lang: str, parsed: dict) -> Path:
 
 async def extract_one(http: aiohttp.ClientSession, session_id: str, lang: str) -> dict:
     prompt = build_prompt(session_id, lang)
-    raw = await call_zo(http, prompt)
+    raw = await call_llm(http, prompt)
     try:
         parsed = parse_output(raw)
     except Exception as e:

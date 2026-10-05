@@ -1,0 +1,73 @@
+{
+  "version": "birdbrain/attendance/v2",
+  "session": "CS33",
+  "date": "2026-09-14",
+  "note": "Each attendee is given as `person`, the commitment blake2_256(person_id), not as a name. The leaf only ever hashes that commitment, so this roster rebuilds the anchored root exactly. Leaves are accounts the attendee controls with their own passkey. Everyone else who was in the room is listed under `excluded` with the reason, so the roster can be checked against a head count.",
+  "root": "0xcc04a401c1900bc950f297d83025a930fb3a6250b5b115d9bddb8007c4d686a0",
+  "memberCount": 4,
+  "remark": "birdbrain/attendance/v2:CS33:0xcc04a401c1900bc950f297d83025a930fb3a6250b5b115d9bddb8007c4d686a0",
+  "builtAt": "2026-10-05T16:31:36.126Z",
+  "excluded": [
+    {
+      "reason": "a second login by someone who already has a leaf in this roster"
+    },
+    {
+      "reason": "holds a membership only on an account an administrator key controls, so paying against it would be paying ourselves"
+    },
+    {
+      "reason": "joined on a guest link with no passkey, so there is no account to put in a leaf"
+    },
+    {
+      "reason": "holds a membership only on an account an administrator key controls, so paying against it would be paying ourselves"
+    },
+    {
+      "reason": "joined on a guest link with no passkey, so there is no account to put in a leaf"
+    }
+  ],
+  "proofs": [
+    {
+      "person": "0xb27a40c897897e2428ff5dbee9995e199e5d2262b0803110c23d0e4e6c0be497",
+      "account": "EjQYB16aa6HwnwXMFZK2Mz1KpXQGF6NieBzprspeecxm2rW",
+      "custody": null,
+      "leaf": "0x22a1267a790a06f0693ffabddb8e7a38208a751af8510ad7f8d6baecb7a53b0b",
+      "proof": [
+        "0x9d31443c10b15a5659f8d0ffeb093f63e66bf37f4948c8f740c6f03f36a53f7f",
+        "0xb6507105cca1d1c7cfd17f005d55e4e46cb0b538d163c198e8ede80033bbf4b1"
+      ],
+      "verified": true
+    },
+    {
+      "person": "0x9fedd249f317c9a03212a3d906bbdc4b99322b520a32f3807e8435ed06c76a09",
+      "account": "D5Tmzin9Xnq3L4t4LiB4J4yh2frwZn8sJPpgRsoN2UcREf6",
+      "custody": null,
+      "leaf": "0x9d31443c10b15a5659f8d0ffeb093f63e66bf37f4948c8f740c6f03f36a53f7f",
+      "proof": [
+        "0x22a1267a790a06f0693ffabddb8e7a38208a751af8510ad7f8d6baecb7a53b0b",
+        "0xb6507105cca1d1c7cfd17f005d55e4e46cb0b538d163c198e8ede80033bbf4b1"
+      ],
+      "verified": true
+    },
+    {
+      "person": "0xa16cf769d4b0c3b252e162417cff5b821bf15b93592e3a6d3629205396cdddb5",
+      "account": "CrRRgR13UaZ882ezJwpqVmCWg3JgdNuvcxxBx7uY94UEo2W",
+      "custody": null,
+      "leaf": "0xc3572f8d2289f75a4bbc7494d38bc4bb1ab9be6b99f5fcc1934b96c56f1e3091",
+      "proof": [
+        "0xec30470be0408e62fdf4ac9526ecfce83795f36f632df75dc3924beb39193320",
+        "0xfe5a103434a9ac09175a25e6f09ec4a386d5a3116d46419076f66db99edc5f37"
+      ],
+      "verified": true
+    },
+    {
+      "person": "0xfc17b7c2a8222a8547a9fa9efffbaa51507b5180ed570420551227e2cce96dd0",
+      "account": "FRPM7MfqVuQtyUQEJf2T6PjCVFqnUCjW6QgrNpW6HQ2tdeF",
+      "custody": null,
+      "leaf": "0xec30470be0408e62fdf4ac9526ecfce83795f36f632df75dc3924beb39193320",
+      "proof": [
+        "0xc3572f8d2289f75a4bbc7494d38bc4bb1ab9be6b99f5fcc1934b96c56f1e3091",
+        "0xfe5a103434a9ac09175a25e6f09ec4a386d5a3116d46419076f66db99edc5f37"
+      ],
+      "verified": true
+    }
+  ]
+}

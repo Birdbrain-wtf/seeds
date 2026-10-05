@@ -18,11 +18,11 @@ web of relationships the Seeds thesis is about.
 ## Build
 
 ```bash
-bun run identity-forest/scripts/build.ts
+bun run profiles/chaos-sessions/identity-forest/scripts/build.ts
 ```
 
 - **Input** — `vault/seeds/*.md` (frontmatter + "## Topic profile" body). Read-only.
-- **Output** — `identity-forest/out/`: `forest.svg` (static render),
+- **Output** — `profiles/chaos-sessions/identity-forest/out/`: `forest.svg` (static render),
   `index.html` (**the living page** — see below), `forest.json` (nodes + genome +
   co-attendance edges), `organisms/<slug>.svg` (one per Seed), `forest.png`
   (auto-rasterised via `rsvg-convert` when available; used for OG cards).
@@ -131,7 +131,7 @@ document: re-running the build refreshes the live page, no redeploy).
 
 **Zero-trust.** Pure, deterministic function of PUBLIC Seed data — no keys, no
 network, no model, no `Math.random` (all jitter is seeded from the slug, so a
-given corpus always renders identically). See [`TRUST.md`](../TRUST.md) at the repo root.
+given corpus always renders identically). See [`TRUST.md`](../../../TRUST.md) at the repo root.
 
 ## Notes
 

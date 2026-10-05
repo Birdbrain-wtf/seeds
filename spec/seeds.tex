@@ -1,0 +1,667 @@
+\documentclass[11pt,a4paper]{article}
+
+\usepackage[british]{babel}
+\usepackage{microtype}
+\usepackage[a4paper,margin=28mm]{geometry}
+\usepackage{setspace}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{enumitem}
+\usepackage{xcolor}
+\usepackage{seeds-academic}
+\usepackage[ruled,vlined,linesnumbered,algosection]{algorithm2e}
+\usepackage{fancyhdr}
+\usepackage{caption}
+\captionsetup{font=small,labelfont={bf,color=navy},skip=8pt}
+\usepackage{csquotes}
+\usepackage[hyphens]{url}
+\usepackage[colorlinks=true,linkcolor=linkcol,citecolor=linkcol,urlcolor=linkcol,pdfauthor={Birdbrain},pdftitle={Seeds: A chain with one job},pdfsubject={Technical white paper},pdfkeywords={Seeds, membership, attribution, Substrate}]{hyperref}
+\usepackage[numbers,sort&compress]{natbib}
+\usepackage[nameinlink,capitalize]{cleveref}
+
+
+
+\setstretch{1.22}
+\setlength{\parskip}{0.4em}
+\setlist[itemize]{leftmargin=1.4em,itemsep=0.15em,topsep=0.3em}
+\setlist[enumerate]{leftmargin=1.4em,itemsep=0.15em,topsep=0.3em}
+
+
+\pagestyle{fancy}
+\fancyhf{}
+\renewcommand{\headrulewidth}{0.3pt}
+\renewcommand{\footrulewidth}{0pt}
+\fancyhead[L]{\small\color{muted}Seeds: a chain with one job}
+\fancyhead[R]{\small\color{muted}Birdbrain, 2026}
+\fancyfoot[C]{\small\thepage}
+\fancypagestyle{plain}{%
+  \fancyhf{}
+  \renewcommand{\headrulewidth}{0pt}
+  \fancyfoot[C]{\small\thepage}
+}
+
+\theoremstyle{definition}
+\newtheorem{definition}{Definition}[section]
+\newtheorem{invariant}{Invariant}[section]
+\theoremstyle{plain}
+\newtheorem{proposition}{Proposition}[section]
+\newtheorem{claim}{Claim}[section]
+\crefname{invariant}{Invariant}{Invariants}
+\crefname{definition}{Definition}{Definitions}
+\theoremstyle{remark}
+\newtheorem*{remark}{Remark}
+
+\newcommand{\kab}{\textsc{kab}}
+\newcommand{\acc}{\mathsf{Acc}}
+\newcommand{\mem}{\mathsf{Mem}}
+\newcommand{\com}{\mathsf{Com}}
+\newcommand{\pt}{\mathsf{Pt}}
+\newcommand{\id}{\mathsf{id}}
+\newcommand{\hash}{\mathsf{H}}
+\newcommand{\era}{\mathsf{era}}
+
+\SetKwInput{KwIn}{Input}
+\SetKwInput{KwOut}{Output}
+\SetKwComment{Comment}{$\triangleright$\ }{}
+\SetAlgoNlRelativeSize{0}
+
+\begin{document}
+\thispagestyle{plain}
+
+\begin{center}
+{\displayfont\LARGE\color{ink} Seeds: A Chain with One Job}\\[5mm]
+{\normalsize Birdbrain}\\[0.5mm]
+{\small\color{muted} \url{https://birdbrain.wtf}}\\[1mm]
+{\small\color{muted} Technical specification \,\textperiodcentered\, 5 October 2026 \,\textperiodcentered\, Version 3.0 \,\textperiodcentered\, runtime \texttt{seeds}, spec 102}
+\end{center}
+
+\vspace{2mm}
+\begin{quote}
+\small
+\textbf{Abstract.} Seeds is a chain that records who joined a community, what they put forward and which of it stood. A member is admitted when enough existing members witness them against the same session evidence. A contribution is a digest that matures unless enough members challenge it. Units are minted when a contribution matures and nowhere else: joining mints nothing, there is no bond and units do not move between members. The runtime is five pallets: four from a standard Substrate solo chain and one application pallet of about a thousand lines. It has no balances pallet, no fees, no sudo and no treasury. This paper specifies that pallet as definitions, invariants and algorithms. It reports a run of twenty-eight checks on a three-node network, derives from the constants what a colluding set of members can do, and lists what is not built. The argument for the design is in the companion paper~\cite{seedsintro}.
+\end{quote}
+
+\section{Scope}
+\label{sec:scope}
+
+Identity online is either issued by an institution or held as a key, and neither records what a person did or who will stand behind them. Seeds replaces issuance with witnessed admission and records contributions against the members who made them. The companion paper makes that case in plain terms~\cite{seedsintro}. This one specifies the runtime.
+
+\subsection{Why one pallet}
+
+A general-purpose chain accumulates modules. Accounts need fees, so a balances pallet appears. Fees need a destination, so a treasury appears. The treasury needs spending, so bounties and councils appear. Upgrades need an administrator, so a sudo key appears. Each step is reasonable. Together they mean that issuance is no longer one public function, and the chain will record whatever can be put through a pallet. Generality is the right objective for a platform that hosts every application. It is the wrong one for a ledger whose whole job is to say who joined and what stood.
+
+Seeds therefore has one application pallet and refuses the rest.
+
+\begin{table}[h]
+\centering
+\caption{Runtime composition. Everything but Seeds is the Polkadot SDK solo-chain template~\cite{substrate2024}, less what fees and balances needed.}
+\label{tab:runtime}
+\begin{tabular}{@{}ll@{}}
+\toprule
+Pallet & Job \\
+\midrule
+\texttt{frame\_system} & blocks, extrinsics, account nonces, authorised upgrades \\
+\texttt{pallet\_timestamp} & wall clock for slots \\
+\texttt{pallet\_aura} & block production~\cite{aura2019} \\
+\texttt{pallet\_grandpa} & finality~\cite{stewart2020} \\
+\texttt{pallet\_seeds} & admit, record, mint, govern, seat \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+There is no \texttt{pallet\_balances}, no \texttt{pallet\_transaction\_payment}, no \texttt{pallet\_sudo}, no treasury, no bounties and no contracts. Account data in \texttt{frame\_system} is empty, and balances of the unit live in Seeds. The pallet depends only on \texttt{frame\_system} and a validator-set trait, so moving it to another FRAME-compatible base is a rename. The source is public~\cite{seedscode}.
+
+\section{Model}
+\label{sec:model}
+
+\subsection{Three relations}
+
+Three questions look similar and are not.
+
+\begin{definition}[Control]
+A party \emph{controls} an account $\id$ if they can produce a proof $\pi$ that the chain accepts for a message $m$ under $\id$. Control is a cryptographic fact.
+\end{definition}
+
+\begin{definition}[Membership]
+An account is a \emph{member}, written $\id \in \mem$, if it was named at genesis or admitted under the rule of \cref{sec:admission}. Membership is a social fact that the chain records and cannot originate.
+\end{definition}
+
+\begin{definition}[Holding]
+An account \emph{holds} $k$ units if the chain's balance map says so. Holding is an arithmetic fact, produced only by the mint and claim rules of \cref{sec:issuance}. Units do not move between accounts.
+\end{definition}
+
+\begin{invariant}[Separation]
+\label{inv:separation}
+Control of $\id$ does not imply $\id \in \mem$. Membership of $\id$ does not imply a positive balance. A positive balance does not imply the right to vote, to witness or to hold a seat.
+\end{invariant}
+
+\begin{invariant}[The right to write is membership]
+\label{inv:write}
+A signed extrinsic whose signer is not in $\mem$ is invalid before it reaches the pool. Unsigned extrinsics are a closed list with one entry, $\mathsf{claim}$.
+\end{invariant}
+
+\Cref{inv:write} is enforced by a transaction extension, \texttt{OnlyMembers}, placed before the nonce check. It reads the members map and returns \texttt{BadSigner} if the signer is absent. Unsigned extrinsics pass to \texttt{ValidateUnsigned}, which accepts only a well-formed claim. Membership replaces fees as the guard against spam. If the unit is a participation record, charging it as postage would turn the record into fuel.
+
+\subsection{Participants, time and communities}
+
+The system has members, candidates and holders of snapshot claims. A candidate is an account with an open candidacy. A holder of a snapshot claim is an old-chain key with an entry in the claims map, and need not be a member. Genesis names a founding set, who are members of community $0$.
+
+Time is block numbers, with a block every six seconds. An \emph{era} is a run of $L$ blocks, $\era(n) = \lfloor n / L \rfloor$. Allowances, admission caps and seating turn over on the era.
+
+A community is an admission queue with a cap per era. Each member belongs to the one community they were admitted into. Further communities are opened by motion. Once a community has at least $w$ members, where $w$ is the witness threshold, witnesses for it must come from inside it. Until then any member may witness, so that a new community can start at all. A community has no account and no motions of its own.
+
+\subsection{What the chain does not decide}
+
+\textbf{Uniqueness.} Two keys can belong to one body, and the chain has no body to inspect. Systems that try to decide uniqueness (biometrics, video, ink, registries of unique humans) sit below Seeds, as a floor it could require~\cite{worldcoin2023,individuality2026}. Seeds does not implement that floor. It implements what sits above: standing that comes from continuing, witnessed participation, and a contribution that traces to the member who made it. Aliases that cannot be linked across contexts protect privacy well and carry attribution badly, because a contribution cannot credit or challenge an alias that cannot be joined to the next context. Seeds is linkable by consent.
+
+\textbf{Content.} A contribution's content is not on the chain. The chain holds a 32-byte digest, a clock and a set of challengers.
+
+\textbf{Money.} Dollars are not in the model. \Cref{sec:security} says why a dollar on this runtime would change its security.
+
+\section{Ownership}
+\label{sec:ownership}
+
+An account is a 32-byte identifier. The chain does not care which kind of key stands behind it. It cares whether a proof shows control of that identifier for one message. Each kind of key is an \emph{ownership type}, a variant of an enum, so adding a scheme adds a variant and moves nobody's balance. The idea is borrowed from Locus~\cite{locus2025}. Ownership types say who controls a balance. They say nothing about who is a member.
+
+\begin{definition}[Ownership proof]
+An ownership proof $\pi$ for identifier $\id$ and message $m$ is one of
+\[
+  \pi \in \{\mathsf{Sr25519}(\sigma),\; \mathsf{Ed25519}(\sigma),\; \mathsf{Ecdsa}(\sigma),\; \mathsf{Passkey}(\alpha)\}.
+\]
+$\mathsf{proves}(\pi, \id, m)$ holds only if the recovered or supplied public key maps to $\id$ and the signature is valid over $m$, or over the browser-wallet wrapping $\langle\texttt{Bytes}\rangle m \langle\texttt{/Bytes}\rangle$.
+\end{definition}
+
+\begin{table}[h]
+\centering
+\caption{Ownership types. Passkey identifiers are domain-separated so a P-256 key cannot collide with an identifier of another type.}
+\label{tab:ownership}
+\begin{tabularx}{\textwidth}{@{}l>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X@{}}
+\toprule
+Type & Identifier & Signed over \\
+\midrule
+Sr25519, Ed25519 & the public key & $m$, raw or wrapped \\
+ECDSA (secp256k1) & $\mathsf{blake2\_256}$ of the compressed public key & $\mathsf{blake2\_256}(m)$, raw or wrapped \\
+Passkey (P-256, WebAuthn) & $\mathsf{passkey\_id}$ of the compressed public key & an assertion whose challenge is $\mathsf{sha256}(m)$ \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\subsection{Passkeys}
+
+With the passkey type the private key never leaves the device's authenticator, and the chain checks the authenticator's own signature.
+
+\begin{definition}[Passkey identifier]
+Let $P$ be a 33-byte SEC1 compressed P-256 public key. Then
+\[
+  \mathsf{passkey\_id}(P) = \mathsf{blake2\_256}(\texttt{seeds/passkey-p256:} \,\|\, P).
+\]
+\end{definition}
+
+An assertion $\alpha$ carries $P$, the authenticator data, \texttt{clientDataJSON} and a 64-byte signature $r \| s$. Verification requires all of the following.
+
+\begin{enumerate}
+  \item The authenticator data is at least 37 bytes and the user-present flag is set.
+  \item \texttt{clientDataJSON} begins with the WebAuthn Level 3 limited-verification prefix
+  \[
+    \texttt{\{"type":"webauthn.get","challenge":"} \,\|\, \mathsf{b64url}(\mathsf{sha256}(m)) \,\|\, \texttt{"}
+  \]
+  which binds the assertion to $m$~\cite{webauthn2025}.
+  \item The P-256 signature verifies over $\mathsf{sha256}(\text{authenticator data} \,\|\, \mathsf{sha256}(\texttt{clientDataJSON}))$, with $s$ normalised.
+  \item $\mathsf{passkey\_id}(P) = \id$.
+\end{enumerate}
+
+The check binds the challenge and user presence. It does not re-implement a browser's origin policy. P-256 verification runs in Wasm with no host function. It measured about 1.6\,ms on a machine at 106--108\% of the FRAME reference CPU and is priced at 2.5\,ms until a benchmark replaces the constant.
+
+\subsection{The claim}
+
+A network may start from balances snapshotted on an earlier ledger. Those balances move only by claim. The one unsigned call is $\mathsf{claim}(\mathit{dest}, \mathit{old}, \pi)$, over the message
+\[
+  m = \texttt{seeds-claim:} \,\|\, h_0 \,\|\, \mathsf{SCALE}(\mathit{dest}),
+\]
+where $h_0$ is the hash of the network's genesis block. Two networks may carry the same snapshot. Binding the message to $h_0$ stops a claim signed for one being replayed on the other.
+Any ownership type that controls $\mathit{old}$ will do. The validator checks that $\mathit{old}$ still has a claim and that $\pi$ verifies, and tags the transaction with $\mathit{old}$ so it cannot be replayed. Genesis places the snapshot in the claims map and in total issuance, and tracks the unclaimed remainder. A claim moves units from unclaimed to $\mathit{dest}$. It does not mint, and $\mathit{dest}$ need not be a member. A migration approved only by operators would bypass the holders. A claim the old key must sign cannot.
+
+\section{Admission}
+\label{sec:admission}
+
+Admission is the only path into $\mem$ after genesis.
+
+\subsection{Evidence and candidacy}
+
+A witness names a candidate, a community and a 32-byte evidence hash. The hash is meant to commit to a session the witnesses attended, such as the root of its attendance record. The chain does not interpret it. It enforces that enough distinct members name the same hash for the same candidate in the same community, inside a timeout.
+
+The sessions held so far already produce such a root. Each attendee signs in with a passkey, and the sign-in log is built into a Merkle tree whose leaves bind a person, an account and the session. An inclusion proof then shows that an account attended. The pallet does not ask for one. A witness today therefore asserts presence as well as personhood, and only the second needs a human (\cref{sec:open}).
+
+The rule is written to follow a meeting a community already holds and to add no step to it. Signing in is how a person enters the session, so presence costs an attendee nothing and is computed from the log. In the runtime specified here \texttt{witness} is still an ordinary signed call that names the hash, so admission needs two members to act. \Cref{sec:computed} sets out how that act can be removed.
+
+\subsection{Computed admission (proposed)}
+\label{sec:computed}
+
+The attendance record is a Merkle root built from the session's sign-in log. Each leaf binds $\mathrm{blake2}(\mathit{person})$, the account and $\mathrm{blake2}(\mathit{session})$, and a root naming one person with two accounts, or one account for two people, is refused when built. The root is fixed before anything is counted against it, and the roster behind it is published, so anyone can rebuild the root and dispute it. Continuity is the rule that turns these records into admission: a person counts after two attendances, the second witnessed by members present at the first.
+
+This separates two standings. Participation is attendance: a key in a matured root is a participant, recorded with no vote and no write access beyond what the profile allows. Membership is derived from consistency across roots, by the continuity rule below. Carried into the pallet, that becomes three changes.
+
+\begin{enumerate}
+  \item \textbf{Records as points.} A member who attended posts the session's root with \texttt{propose\_point}. It matures by the ordinary rule, and $\theta$ members who appear in the root as attendees can burn it.
+  \item \textbf{Admission by continuity.} A call carrying inclusion proofs admits candidate $c$ when two matured roots $r_1, r_2$ for the same community both contain $c$ and both contain at least $k$ common members. Those $k$ members are recorded as $c$'s witnesses, for strikes and allowances, exactly as if they had called \texttt{witness}. Any account may submit the call, since the proofs carry the authority.
+  \item \textbf{Challenge by exception.} The judgement a witness makes today, that a key is a person and not a second key for someone counted, is exercised by challenging the root, or a later point naming a leaf, inside its window.
+\end{enumerate}
+
+None of this is built. Two costs come with it. The per-member allowance and strikes now attach to members who were merely present, which is fair only if they were able to check the record. And the roster that maps a sign-in to a person is still compiled by whoever builds the root, so it is an issuer by another name until the root itself can be challenged, which is the first change.
+
+\begin{definition}[Candidacy]
+A candidacy for account $c$ is a tuple $(q, e, W, t_0)$: a community, an evidence hash, a bounded set of witnesses and the block it opened. While it is open, a witness naming a different $q$ or $e$ is refused.
+\end{definition}
+
+\subsection{Four brakes}
+
+\begin{enumerate}
+  \item \textbf{Threshold.} $w$ distinct members must witness. Lab value $w = 2$.
+  \item \textbf{Allowance.} A member may witness at most $a$ candidates per era. Lab value $a = 3$.
+  \item \textbf{Cap.} A community admits at most $\mathit{cap}(q)$ people per era. Genesis sets the founding cap at 10, and motions change it.
+  \item \textbf{Strikes.} When a member is expelled, each of their witnesses takes a strike, and a member whose point fails takes one too (\cref{sec:points}). At $s_{\max}$ strikes a member may no longer witness or propose. Lab value $s_{\max} = 2$.
+\end{enumerate}
+
+\Cref{sec:security} shows which of these binds against a colluding set. It is the cap.
+
+\begin{algorithm}[h]
+\caption{Witness and possibly admit}
+\label{alg:witness}
+\KwIn{signer $b$, candidate $c$, community $q$, evidence $e$}
+\lIf{$b \notin \mem$ or $c \in \mem$}{refuse}
+\lIf{strikes$(b) \ge s_{\max}$}{refuse}
+\lIf{$q$ unknown}{refuse}
+\lIf{$|q| \ge w$ and community$(b) \ne q$}{refuse \tcp*[f]{outside witness}}
+\lIf{allowance of $b$ for $\era(\mathit{now})$ is spent}{refuse}
+open or resume the candidacy of $c$ for $(q, e)$ inside the timeout\;
+\lIf{$b \in W$}{refuse}
+$W \leftarrow W \cup \{b\}$ and consume one allowance of $b$\;
+\If{$|W| \ge w$}{
+  \lIf{$q$ is at its era cap}{refuse}
+  increment the era counter of $q$\;
+  $\mathsf{admit}(c, q, e, W)$\;
+}
+\end{algorithm}
+
+\subsection{What admission does}
+
+Admission assigns a network-wide index, records the community, the evidence, the witnesses and the block, and gives the account a provider reference in \texttt{frame\_system}, since no balances pallet exists to do so. It then mints the admission amount $A$ to the new member. Founders are admitted at genesis with empty evidence and the founder bit set. The index is the seating order of \cref{sec:seating}.
+
+\subsection{Expulsion}
+
+Expulsion is a motion and never an administrative act. If it passes, the member is removed, their session keys are dropped, any open motion of theirs is cancelled, each of their witnesses takes a strike and the community count falls. Their units are not seized.
+
+\section{Points}
+\label{sec:points}
+
+A contribution reaches the chain as a \emph{point}.
+
+\begin{definition}[Point]
+A point with digest $d$ is a tuple $(p, t_{\mathrm{prop}}, t_{\mathrm{mat}}, C, \nu, \sigma)$, where $p$ is the proposing member, $C$ a bounded set of challengers, $\nu$ an optional note of at most $N$ bytes, and $\sigma \in \{\mathsf{Pending}, \mathsf{Matured}, \mathsf{Failed}\}$.
+\end{definition}
+
+\begin{enumerate}
+  \item A member proposes $d$. There is no bond and no fee. The point stays pending until $t_{\mathrm{mat}} = t_{\mathrm{prop}} + T$. A member may have at most $Q$ points pending, and at most $R$ points may mature in one block.
+  \item Any other member may challenge once. A proposer cannot challenge their own point.
+  \item If $|C|$ reaches the threshold $\theta$ before then, the point fails. Nothing is minted, and the proposer takes a strike.
+  \item At $t_{\mathrm{mat}}$, a pending point whose proposer is still a member matures and $M$ is minted to the proposer. If the proposer has been expelled, it fails.
+\end{enumerate}
+
+A failed point costs standing rather than units, by the same strike that stands down a witness whose admittee is expelled (\cref{sec:admission}). A member with $s_{\max}$ strikes may neither witness nor propose. Lab values are $Q = 3$, $T = 5$ minutes, $\theta = 3$, $R = 16$ and $N = 128$.
+
+\begin{algorithm}[h]
+\caption{Mature a due digest, called from \texttt{on\_initialize}}
+\label{alg:mature}
+\KwIn{digest $d$}
+let $P$ be the point at $d$\;
+\lIf{$P$ is missing or not pending}{return}
+\eIf{the proposer of $P$ is a member}{
+  mark matured, release one pending slot of $p$, $\mathsf{mint}(p, M, \mathsf{Maturity})$\;
+}{
+  mark failed\;
+}
+\end{algorithm}
+
+Maturity is an optimistic confirmation: nobody who could object did, in number, in time. It does not show that the content is true, useful or original. The digest is what keeps the chain small. A graph, a transcript or a dataset each reduces to 32 bytes, and the chain's work is the clock and the count of challengers.
+
+\section{Issuance}
+\label{sec:issuance}
+
+Let $M$ be the maturity mint. The lab value is $M = 10$ units, with one unit equal to $10^{12}$ base units. The runtime calls the unit an amount and nothing else, and each network names its own.
+
+\begin{definition}[Mint]
+$\mathsf{mint}(\id, k)$ adds $k$ to the balance of $\id$ and to total issuance. It has one call site, $\mathsf{mature}$. Admission mints nothing, there is no bond to debit or burn, and there is no transfer.
+\end{definition}
+
+\begin{invariant}[Issuance is a public function]
+\label{inv:issuance}
+Let $I_t$ be total issuance after block $t$, and $m_t \le R$ the points that matured in it. Then
+\[
+  I_t - I_{t-1} \;=\; m_t M .
+\]
+No other term exists.
+\end{invariant}
+
+\begin{invariant}[Issuance is at the edge]
+\label{inv:edge}
+Every unit added under \cref{inv:issuance} is credited to the proposer of a newly matured point. None is credited to a treasury, a fee sink, an administrator, a block producer or a newly admitted member. Consensus is not paid in units, and votes are not counted in units.
+\end{invariant}
+
+Summing \cref{inv:issuance} from genesis gives a conservation identity. With $m$ matured points and snapshot total $S$,
+\begin{equation}
+\label{eq:conservation}
+  I \;=\; m\,M \;+\; S .
+\end{equation}
+Claims move units out of the unclaimed part of $S$ without changing $I$. Issuance never falls. Anyone who can read the chain can recompute \cref{eq:conservation}, and if it fails the pallet is wrong.
+
+\subsection{What changed from the first runtime}
+\label{sec:noadmission}
+
+The first runtime also minted $A = 100$ units on admission, made a proposer post a bond of at least one unit that was burned if the point failed, and let a member transfer units to another member. All three are gone. A member holds what they have added, and the unit counts continued participation and not arrival. None of the earlier specifications this design descends from minted for joining. Three consequences follow.
+
+\begin{enumerate}
+  \item \textbf{The cost of a bad point} is standing, not units. A member admitted with an empty balance can propose at once, and a member who keeps proposing points the room rejects is stood down after $s_{\max}$ failures.
+  \item \textbf{The attacker's prize.} A manufactured member carries away no units. What remains to be won is a vote and a place in the seating order, which is what \cref{sec:security} analyses.
+  \item \textbf{The unit does not trade on the network.} With no transfer it is a record of what a member added, not something that changes hands.
+\end{enumerate}
+
+Two properties found in earlier specifications are absent from the pallet. Several set aside a tenth of each mint for the members who connect one contribution to another, and some sized each mint to the work by vote. Here every matured point mints the same $M$, and a point carries no reference to any other, so there is nothing yet for a connecting share to follow. Both are listed in \cref{sec:open}.
+
+\section{Governance}
+\label{sec:governance}
+
+A member may have one open motion at a time. Opening a motion counts the proposer's aye and freezes the electorate at the members whose admission index is below the next index. A vote may be changed until the motion closes.
+
+\begin{definition}[Motion kind]
+A motion is one of
+\begin{gather*}
+  \mathsf{Upgrade}\{\mathit{code\_hash}\},\quad \mathsf{OpenCommunity}\{\mathit{cap}\},\quad \mathsf{SetCap}\{q, \mathit{cap}\},\\
+  \mathsf{Expel}\{\id\},\quad \mathsf{EndFounding}.
+\end{gather*}
+\end{definition}
+
+Let $E$ be the frozen electorate, $Y$ the ayes and $N$ the nays, with
+\[
+  \mathsf{vetoed} = \bigl(3N \ge \max(E, 1)\bigr), \qquad \mathsf{majority} = \bigl(2Y > E\bigr).
+\]
+
+\begin{itemize}
+  \item $\mathsf{EndFounding}$ passes on a majority while founding control is active. It is irreversible.
+  \item $\mathsf{Expel}$ passes on a majority that is not vetoed, if the target is still a member. The founder rule never applies to it.
+  \item Any other kind, proposed by a founder while founding control holds, passes unless vetoed.
+  \item Otherwise a motion passes on a majority that is not vetoed.
+\end{itemize}
+
+An upgrade motion authorises a code hash, after which any member may submit the matching Wasm. Founding control lets a small set ship the first upgrades before a majority exists. Members can end it, and the pallet will not restart it.
+
+\begin{proposition}[No silent administrator]
+Every change to runtime code, community caps, membership or the founding flag is either a genesis fact or the enactment of a closed motion. The pallet has no other origin.
+\end{proposition}
+
+\section{Seating}
+\label{sec:seating}
+
+Block production is Aura, one authority per six-second slot, and finality is GRANDPA. The pallet implements neither. It produces a list of session keys and hands it to a runtime trait.
+
+\begin{definition}[Seating]
+Let $H$ be the members who have registered session keys, ordered by admission index, oldest first. The seated set $K$ is the first $\min(|H|, V_{\max})$ of them. Lab value $V_{\max} = 21$.
+\end{definition}
+
+On each era boundary the pallet builds $K$. If $K$ is empty or unchanged, nothing happens. Otherwise the runtime applies it to GRANDPA first, and to Aura only if GRANDPA accepted, so the two sets never disagree. GRANDPA refuses while a change is pending, and the pallet retries at the next era.
+
+Registering keys is a member call. It needs no vote, no stake and no payment. Seating is not random and not elected. The scarce resource is the admission index, so a member admitted late sits behind everyone admitted earlier who holds keys.
+
+$V_{\max}$ is a parameter. Some bound is needed because the cost of a GRANDPA round grows with the square of the set and an absent machine in a small set stalls finality. The consensus pallets accept up to 32 authorities. The value 21 is a choice.
+
+\section{Constants}
+\label{sec:constants}
+
+\begin{table}[h]
+\centering
+\caption{Lab constants. They are short so that a full cycle fits one sitting. A network that mattered would take an era of about a day and a maturity period of weeks.}
+\label{tab:constants}
+\begin{tabular}{@{}lrl@{}}
+\toprule
+Constant & Lab value & Role \\
+\midrule
+Slot & 6\,s & block production \\
+Era length $L$ & 10 minutes & allowances, caps, seating \\
+Witnesses required $w$ & 2 & admission threshold \\
+Witness allowance $a$ & 3 per era & brake on each member \\
+Candidacy timeout & 1 hour & stale candidacies \\
+Maximum strikes $s_{\max}$ & 2 & member stands down \\
+Founding cap & 10 per era & community 0 \\
+Maturity mint $M$ & 10 units & the only mint \\
+Pending points per member $Q$ & 3 & brake on each proposer \\
+Maturity period $T$ & 5 minutes & challenge window \\
+Challenge threshold $\theta$ & 3 & a point fails \\
+Maximum maturing per block $R$ & 16 & weight bound \\
+Maximum note $N$ & 128 bytes & on-chain remark \\
+Voting period & 2 minutes & motions \\
+Maximum seats $V_{\max}$ & 21 & seated set \\
+Maximum key holders & 1{,}000 & queue bound \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+All extrinsic weights are set by hand. None has been benchmarked.
+
+\section{Results}
+\label{sec:results}
+
+The runtime was started from genesis on three nodes on one machine, with three founders, two of them seated, and one snapshot claim of 1,000 units. A script then ran the twenty-eight checks of \cref{tab:checks} between blocks 1 and 120, and all passed unattended.
+
+\begin{table}[h]
+\centering
+\small
+\caption{The end-to-end run of spec 102, 5 October 2026.}
+\label{tab:checks}
+\begin{tabularx}{\textwidth}{@{}rX@{}}
+\toprule
+\# & Check \\
+\midrule
+1 & The runtime is five pallets and nothing else \\
+2--6 & Genesis: three founders holding nothing, no transfer call, founding control on, two seats \\
+7 & A non-member's signed transaction is refused before the pool \\
+8 & One witness does not admit \\
+9 & A second witness naming different evidence is refused \\
+10--11 & A second witness naming the same evidence admits the candidate, and nothing is minted \\
+12 & The new member writes without a fee \\
+13 & A claim signed for another network's genesis is refused \\
+14 & A claim signed for a different destination is refused \\
+15--16 & The old key moves 1,000 units to the new member, who signs nothing, and nothing is left unclaimed \\
+17 & The new member registers keys and joins the queue \\
+18 & A point is proposed with no bond, and one challenge leaves it pending \\
+19 & Three challenges fail another point: nothing is minted and its proposer takes a strike \\
+20 & A founder's upgrade motion, unopposed, is authorised \\
+21 & A member applies the authorised code, spec 102 to 103, with no sudo and no restart \\
+22 & Members end founding control, three of four \\
+23--24 & The first point matures and mints 10 units, the only mint of the run \\
+25 & Total issuance is exactly $10 + 1000$ units \\
+26--27 & At the era boundary the new member's keys join Aura, and Seeds records three seats \\
+28 & GRANDPA finalises past the set change with three voters (block 117) \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+Check 25 is \cref{eq:conservation} with $m = 1$ and $S = 1000$, giving 1,010 units. The pallet also has 31 unit tests. This is a conservation check that anyone can repeat. It is not a security proof.
+
+\section{Security}
+\label{sec:security}
+
+\subsection{What an attacker wants}
+
+\begin{enumerate}
+  \item To mint units without a maturity.
+  \item To take a seat without being a member in admission order.
+  \item To pass a motion without the electorate.
+  \item To move a snapshot balance without the old key.
+  \item To manufacture members cheaply enough that seats or motions follow.
+\end{enumerate}
+
+The first four are closed in the pallet. Mint has one call site. Seating reads the key-holder list in index order. Motions freeze the electorate when they open. A claim needs a verifying ownership proof and consumes its entry. The fifth is the real question.
+
+\subsection{What a colluding set can do}
+
+The chain cannot test that an evidence hash commits to a session that took place. A set of members acting together can witness a fiction. Computed admission (\cref{sec:computed}) would narrow this to sessions whose record has itself stood unchallenged. The brakes are then the whole defence, and one of them does not bind.
+
+\begin{proposition}[The allowance does not bind a colluding set]
+If $a \ge w$ and a new member may witness in the era of their admission, then $w$ colluding members in one community can admit candidates until the community's cap for the era is reached.
+\end{proposition}
+
+Each admission spends $w$ allowances from the set and adds a member who brings $a$ fresh ones, so the stock of allowances never falls. With $w = 2$ and $a = 3$ it grows by one with every admission. The allowance still limits what one honest member can be talked into, and it makes each false member name its witnesses for the strike rule. The rate of a colluding set is governed by the cap alone.
+
+\Cref{tab:attack} takes two colluding members, a cap of ten per era and $h$ honest members in one community. After $t$ eras the set controls $2 + 10t$ votes. It can veto, and so block its own expulsion, once it holds a third of the electorate, which is when its size reaches $h/2$. It has a majority once its size exceeds $h$.
+
+\begin{table}[h]
+\centering
+\caption{Eras a colluding pair needs, at a cap of ten admissions per era, if no honest member acts. With an era of a day, read the columns as days.}
+\label{tab:attack}
+\begin{tabular}{@{}rrr@{}}
+\toprule
+Honest members $h$ & Eras to a veto & Eras to a majority \\
+\midrule
+10 & 1 & 1 \\
+20 & 1 & 2 \\
+50 & 3 & 5 \\
+100 & 5 & 10 \\
+500 & 25 & 50 \\
+1{,}000 & 50 & 100 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Three things follow. The time to capture grows in proportion to the honest membership, so a small network is the exposed one. The attack is public while it runs: every admission names its witnesses and its evidence, and it uses up the cap that real joiners need. And the window for expelling the set closes when it reaches a veto, so the honest members have to act within the first column.
+
+The cap is per community, and motions can open communities and raise caps, so the network-wide rate is the sum of the caps. During the founding period a founder's motion to do either passes unless a third object, which makes that period the weakest.
+
+Two changes would strengthen this. A waiting period before a new member may witness would make the allowance bind, limiting a set to growth by a factor of $1 + a/w$ per era. A floor beneath Seeds that made a witness costly in bodies and not only in keys would raise the price of each false member. Neither is built.
+
+\subsection{Seats}
+
+Seating by admission order protects seats better than votes. GRANDPA finalises with more than two thirds of the seated set. Once fifteen honest members hold keys, later arrivals can take at most six of twenty-one seats, which is too few to stall finality. Once twenty-one do, later arrivals take none. Before that point seats are open to whoever registers keys, and a third of a small set can stall the chain.
+
+The same rule has a cost. A twenty-second member with a machine never takes a seat while the first twenty-one keep theirs. Rotation among key holders is not designed.
+
+One person may run several machines under several memberships, so the number of independent seats has to be counted in people. An experiment to measure that on a network holding no value is designed and has not been run.
+
+Liveness has a known failure. On an earlier test network, with two of three seated machines absent, finality stopped. In Aura a dishonest seat can withhold or equivocate in its own slots, which slows the chain and finalises nothing.
+
+\subsection{Flooding}
+
+Members write without a fee, and weights are set by hand. A member may have at most $Q$ points pending, but other calls are not limited, so a member can still fill blocks to the weight limit with votes and remarks. The response today is an expulsion motion, which takes a voting period. A general rate limit for each member is not built.
+
+\subsection{Money}
+
+With the unit alone, capturing the chain costs real people's standing and wins a participation record. With a regulated dollar on the same runtime, the same capture would pay in cash, and twenty-one member machines are a weaker guarantee than a relay chain. If a dollar ever arrives it should arrive last, in an optional module that cannot reach membership or the mint, capped by motion.
+
+\section{Where it runs}
+\label{sec:where}
+
+The protocol is a set of rules, and a chain is one machine that can run them. Three placements are possible, and they can run at the same time.
+
+\textbf{As its own network.} The reference runtime is a standalone Substrate chain of five pallets (\cref{sec:scope}). Its security is the seated set of member machines and nothing else. This is the only placement in which every rule in this paper holds as written, and the only one built.
+
+\textbf{As services on JAM.} JAM runs applications as services rather than as whole chains. The rules map onto its parts without forcing:
+
+\begin{center}
+\small
+\begin{tabular}{p{0.24\linewidth}p{0.32\linewidth}p{0.32\linewidth}}
+\toprule
+Rule & Reference runtime & JAM \\
+\midrule
+Only members write & a transaction extension before the pool & an authorizer \\
+Admission & \texttt{witness}, then caps & signatures checked in refine, caps applied in accumulate \\
+Keeping the record & oldest key holders, up to $V_{\max}$ & a designated validator set named by a privileged service \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\noindent One rule runs this way today. A membership register, compiled as a JAM service, records members on a reduced JAM client of our own, which has run with twenty-one validators~\cite{jambo}. All its validators run in one process on one machine. Admission by witness, points, units, motions and seating are not yet services. Kusama voted in 2025 for an independent, lightweight JAM of its own and named proof of personhood as a way to cut its cost~\cite{kusama573}. A Seeds network running as services is one candidate for that.
+
+\textbf{Anchored to another chain.} A network may post its finalised checkpoints, or the roots of its attendance records, to an outside chain so that a stranger can check them against a ledger the network does not control. An anchor adds a witness. It never adds authority: nothing posted outside can mint, admit, vote or seat.
+
+\textbf{One constraint on every base.} Seats and votes come from membership, never from holding a coin, whether the network's own unit or another network's. Where a shared base seats its own validators by stake, as a full JAM network does, that base provides the ordering and finality and the seating rule of \cref{sec:seating} does not apply to it. The protocol then asks only that its unit is never accepted as stake there, so that holding it cannot buy a place in line by another route.
+
+\section{Protocol and profiles}
+\label{sec:profiles}
+
+The protocol is the set of rules this paper specifies. A \emph{profile} is a network that runs them with its own settings, and may add arrangements of its own above them. Keeping the two apart keeps the protocol small.
+
+\textbf{Fixed by the protocol.} Only members write, except for a claim. New units appear only at contributions that stand, and nowhere else. Admission is by witness against session evidence. Motions on membership and on the protocol's own rules are one member, one vote. No key can bypass a vote. Machines that keep the record belong to members and are seated by standing, never by holding.
+
+\textbf{Set by a profile.} The unit's name, the amount created per contribution, the split between a contribution and those it builds on, the number of witnesses, the allowances and caps, the length of a period and of a challenge window, and the number of seats. \Cref{tab:constants} lists the values the lab uses. A profile may also start from a list of balances claimable from an earlier ledger.
+
+\textbf{Added above by a profile.} Funding, licences on a group's work, prices for querying its record, and payment in money. These are contracts between people, kept off the chain.
+
+\textbf{Never added by a profile.} Anything that mints, gives a vote, or gives a place in line to whoever funds or contracts with a group. A profile that needs one of those is a different protocol, and should say so.
+
+\section{Related work}
+\label{sec:related}
+
+\textbf{Bitcoin.} The debt is the discipline. Bitcoin issues one unit for work and records little else~\cite{nakamoto2008}. Seeds issues for a contribution that stood and records little else. Bitcoin's unit is measure, store and reward together. Seeds separates them: its unit is not the security bond and not the franchise. A later module or borrowed asset that was allowed to back the seated set would undo that separation~\cite{anotherway}.
+
+\textbf{Proof of personhood.} BrightID~\cite{brightid2020}, Proof of Humanity~\cite{poh2021}, Worldcoin~\cite{worldcoin2023} and Proof of Ink~\cite{individuality2026} each try to decide, once, that an account is a unique human. Polkadot's \texttt{pallet-people} stores such decisions and issues an alias for each context. A decision made once costs an attacker once. Standing that depends on continued witnessing has to keep being paid for. Seeds is offered as a mechanism such a registry could consume, and could require one beneath itself. Soulbound tokens~\cite{weyl2022} share the idea of social facts that cannot be transferred, and usually still merge key, person and holding in one token.
+
+\textbf{Merit and decay.} {\v{S}}kvorc argues that on-chain governance drifts towards plutocracy, and that merit should be earned in each category and should fade with absence~\cite{skvorc2023}. Seeds already removes the balance from the vote. It does not weight votes by merit. MeritRank~\cite{nasrulin2022} and PageRank~\cite{pagerank1998} are the natural machinery if it ever does.
+
+\textbf{Typed ownership.} Locus separates the type of key that controls an asset from the asset~\cite{locus2025}. Seeds uses that split for claims.
+
+\section{Open questions}
+\label{sec:open}
+
+\begin{enumerate}
+  \item \textbf{Transfer.} Whether units should move between members at all (\cref{sec:issuance}).
+  \item \textbf{Delegation.} A member can let an AI agent (software that carries out a task on its own once instructed) sign with their key, and every act is then the member's. A mandate type, by which a member authorises another key to act for them within a stated scope, is not designed. Without it the chain cannot tell a member from an agent holding the member's key.
+  \item \textbf{Computed admission.} Admission from matured attendance roots by continuity, with the room's judgement used by challenge, as set out in \cref{sec:computed}. Not built. Open within it: the overlap $k$, whether presence alone should carry a strike, and how a member is shown a record in time to challenge it.
+  \item \textbf{A waiting period for witnesses,} so that the allowance binds (\cref{sec:security}).
+  \item \textbf{A rate limit for each member,} against flooding.
+  \item \textbf{Rotation of seats} among key holders. On JAM the designated validator set is the other route (\cref{sec:where}).
+  \item \textbf{Registration on install.} The pallet seats whoever has registered keys. Making installation of the software the registration would remove the last separate operator step.
+  \item \textbf{Recovery.} A member who loses every device has no path back. Recovery witnessed by members is the obvious shape and is not specified.
+  \item \textbf{Collectives.} A community is an admission queue. Giving it an account and motions of its own is designed and not built. In that design the chain itself stays governed by persons, so that opening collectives cannot multiply a vote.
+  \item \textbf{Members of earlier communities,} who joined before this rule existed and were never witnessed in its sense. They are either named as founders of a community or witnessed afresh.
+  \item \textbf{Relations between points.} A point is a digest with no reference to any other. A recorded link from one point to an earlier one, open to challenge like the point itself, is what a share for connecting work and any weight from uptake would both rest on. The opening example is $0.9M$ to the proposer and $0.1M$ divided across the points a matured point links to, the split earlier specifications used. It is not designed.
+  \item \textbf{Starting a network.} The protocol assumes a group that already meets, and asks it for nothing it is not already doing. Outside funding is allowed and sits outside the runtime (\cref{sec:profiles}).
+  \item \textbf{Sizing.} Every matured point mints the same amount. Whether members should be able to size a mint to the work, as earlier specifications did, is undecided.
+  \item \textbf{Weight from uptake.} One member, one vote gives a member admitted last week the same say as one whose contributions others have built on for years. A designed extension adds a capped weight from recorded citations, with decay on the citation and not on the person, leaving motions on membership and on the chain's own rules unweighted. A citation would count only when a member records it, where it can be challenged. An attempt to infer uptake from session transcripts failed: talk close to an idea was as common before the idea was first stated as after.
+  \item \textbf{Production constants.} Era, maturity, caps, $V_{\max}$, $A$ and $M$ are political as much as technical, and they are for the members to set.
+  \item \textbf{Not yet built:} benchmarked weights, the loader for the real snapshot, and a chain specification with founders' keys held by different people on different machines.
+\end{enumerate}
+
+\section{Conclusion}
+\label{sec:conclusion}
+
+One pallet is enough to record who joined, what they put forward and which of it stood, and to mint only at those two events. Keys, members and balances stay three separate maps. Members write without a fee, and nobody else writes except to claim what they already held. Seats go to members in admission order. Founding control ends. The lab runtime does all of this, and its supply reconciles to the unit. It still mints on admission, which the design no longer wants.
+
+What it does not yet do is bound a colluding set by anything but the cap, limit a member who floods, rotate seats, or let a member authorise an agent to act for them. Those are the next pieces of work.
+
+\appendix
+\section{Call index}
+\label{app:calls}
+
+\begin{table}[h]
+\centering
+\caption{Dispatchable calls of \texttt{pallet-seeds}. Index 7 is the only unsigned call.}
+\label{tab:calls}
+\begin{tabular}{@{}cll@{}}
+\toprule
+\# & Call & Who \\
+\midrule
+0 & $\mathsf{witness}(c, q, e)$ & member \\
+1 & $\mathsf{set\_keys}(\mathit{keys})$ & member \\
+2 & $\mathsf{propose\_point}(d, \nu)$ & member, fewer than $Q$ pending \\
+3 & $\mathsf{challenge}(d)$ & member, not the proposer \\
+4 & $\mathsf{propose}(\mathit{kind})$ & member with no open motion \\
+5 & $\mathsf{vote}(\mathit{id}, \mathit{aye})$ & member in the frozen electorate \\
+6 & $\mathsf{close}(\mathit{id})$ & member, after the voting period \\
+7 & $\mathsf{claim}(\mathit{dest}, \mathit{old}, \pi)$ & unsigned, with an old-key proof \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\bibliographystyle{unsrtnat}
+\bibliography{seeds}
+
+\end{document}

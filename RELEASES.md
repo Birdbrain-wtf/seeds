@@ -1,28 +1,29 @@
 # Releases
 
-Every release is content-addressed and anchored on-chain. Git is the working
-mirror; the root of trust is the CID + the chain commitment.
+A release is a CID, signed and fixed in public. Git is the working copy. The root of trust is the content address and the signed commitment, not this repository.
 
-Each release directory contains `seeds-<tag>-src.tar.gz` (a `git archive` of
-the repo at the tagged commit) and `forest/` — the built Identity Forest,
-fully self-contained: open `forest/index.html` on any IPFS gateway and the
-whole living piece (all four dimensions, sound included) serves trustlessly.
+From v2, every release is:
 
-Links in the table resolve through the gateway we run ourselves, in front of the
-node holding the pins. A CID is a specification rather than a service, so
-`https://ipfs.io/ipfs/<cid>/`, any other public gateway, or a local
-`ipfs get <cid>` are equally valid ways in, and all of them return the same
-bytes or none at all.
+- **Content-addressed.** One CID covers `seeds-<tag>-src.tar.gz` (a `git archive` of the tagged commit, papers included under `spec/`), `forest/` (the built Identity Forest, self-contained) and `release.json`.
+- **Served by Birdbrain.** `https://ipfs.birdbrain.wtf/ipfs/<cid>/` runs on Birdbrain's own machine and serves only what it pins. A CID is a specification, not a service, so any gateway or a local `ipfs get <cid>` returns the same bytes or none.
+- **Signed and fixed on a network Birdbrain runs.** A `System.remarkWithEvent` on the BBT chain (`wss://rpc.birdbrain.wtf`), signed by Birdbrain's release key `5DFXkAKLVMnmyexsYXHs8tBSmbpvEMPWjB1iiNpmJN3SrGC8`, carrying `BIRDBRAIN::RELEASE::seeds::<tag>::<cid>::<commit>`. When a persistent Seeds network runs, releases move onto it. The release key is one key today and is meant to become a threshold of maintainers.
 
-To verify a release: fetch the CID, unpack the tarball and compare it against
-the tagged commit, then check that the `System.remark` transaction carries the
-same CID.
-
-| tag | commit | CID | on-chain anchor | date |
+| tag | commit | CID | fixed in | date |
 |---|---|---|---|---|
-| v1 | `0d11b6e` | [`bafybeihixnfww2q…`](https://rw.zo.space/ipfs/bafybeihixnfww2qx5xquwvkm5gccszniwwn3tlmq3jkto3gpcmtvm6uq4y/) | `0x1c64dc31ad929296…` (kreivo) | 2026-08-10 |
+| v1 | `0d11b6e` | [`bafybeihixnfww2q…`](https://ipfs.birdbrain.wtf/ipfs/bafybeihixnfww2qx5xquwvkm5gccszniwwn3tlmq3jkto3gpcmtvm6uq4y/) | Kreivo, tx `0x1c64dc31ad…` (legacy) | 2026-08-10 |
+
+## Check a release yourself
+
+1. Fetch it: `ipfs get <cid>`, or download from the gateway.
+2. Compare the source: `git archive --format=tar.gz <commit> | gunzip | sha256sum` against `gunzip -c seeds-<tag>-src.tar.gz | sha256sum`.
+3. Read the commitment: open `https://polkadot.js.org/apps/?rpc=wss://rpc.birdbrain.wtf#/explorer/query/<block>`, find the extrinsic, and check its signer is the release key and its remark carries the same CID and commit.
+4. Hold the code to the rules: `bash chain/scripts/e2e.sh | tee run.log && bun run conformance/check-log.ts run.log`.
 
 ## Full identifiers
 
-- **v1** — `bafybeihixnfww2qx5xquwvkm5gccszniwwn3tlmq3jkto3gpcmtvm6uq4y`
-  - anchor tx `0x1c64dc31ad92929674f6bacc124f2b90e16df390d94e261a091ca52d89bcf44d` on kreivo (System.remark: `BIRDBRAIN::RELEASE::seeds::v1::<cid>::<sha>`)
+### v1
+
+- commit `0d11b6e`
+- CID `bafybeihixnfww2qx5xquwvkm5gccszniwwn3tlmq3jkto3gpcmtvm6uq4y`
+- source `https://ipfs.birdbrain.wtf/ipfs/bafybeihixnfww2qx5xquwvkm5gccszniwwn3tlmq3jkto3gpcmtvm6uq4y/seeds-v1-src.tar.gz`
+- legacy: fixed on Kreivo, tx `0x1c64dc31ad92929674f6bacc124f2b90e16df390d94e261a091ca52d89bcf44d`, block `0xe50ee7136ff872762204c2793a13c7e5dbc678d524282279d604c7b31c3567a3`, by the operator of a downstream collective, before releases were Birdbrain's own. Remark `BIRDBRAIN::RELEASE::seeds::v1::<cid>::<sha>`. Served by Birdbrain's gateway only if pinned there

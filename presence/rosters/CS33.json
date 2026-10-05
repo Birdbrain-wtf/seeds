@@ -1,0 +1,50 @@
+{
+  "session": "CS33",
+  "date": "2026-09-14",
+  "version": "birdbrain/attendance/v2",
+  "root": "0xcc04a401c1900bc950f297d83025a930fb3a6250b5b115d9bddb8007c4d686a0",
+  "anchored": {
+    "chain": "Kusama Asset Hub",
+    "blockNumber": 21513860,
+    "block": "0x5592fe5f202ff58a6fa38c1013c1abec8bb5e1a4c84d425e33af301360df7610",
+    "extrinsic": "0x0a04550ef4ec44a2d067553b6dcba3aa1a415ae4607cb975efbf59ed298680dd",
+    "signer": "FvrbaMus8iASyrQYkajQWDxsYvG5gb72PFPuvy8TvkFFVGn",
+    "remark": "birdbrain/attendance/v2:CS33:0xcc04a401c1900bc950f297d83025a930fb3a6250b5b115d9bddb8007c4d686a0"
+  },
+  "note": "Each attendee is given as `person`, the commitment blake2_256(person_id), not as a name. The leaf only ever hashes that commitment, so this roster rebuilds the anchored root exactly. Leaves are accounts the attendee controls with their own passkey. Everyone else who was in the room is listed under `excluded` with the reason, so the roster can be checked against a head count.",
+  "attendees": [
+    {
+      "person": "0xa16cf769d4b0c3b252e162417cff5b821bf15b93592e3a6d3629205396cdddb5",
+      "account": "CrRRgR13UaZ882ezJwpqVmCWg3JgdNuvcxxBx7uY94UEo2W"
+    },
+    {
+      "person": "0xfc17b7c2a8222a8547a9fa9efffbaa51507b5180ed570420551227e2cce96dd0",
+      "account": "FRPM7MfqVuQtyUQEJf2T6PjCVFqnUCjW6QgrNpW6HQ2tdeF"
+    },
+    {
+      "person": "0xb27a40c897897e2428ff5dbee9995e199e5d2262b0803110c23d0e4e6c0be497",
+      "account": "EjQYB16aa6HwnwXMFZK2Mz1KpXQGF6NieBzprspeecxm2rW"
+    },
+    {
+      "person": "0x9fedd249f317c9a03212a3d906bbdc4b99322b520a32f3807e8435ed06c76a09",
+      "account": "D5Tmzin9Xnq3L4t4LiB4J4yh2frwZn8sJPpgRsoN2UcREf6"
+    }
+  ],
+  "excluded": [
+    {
+      "reason": "a second login by someone who already has a leaf in this roster"
+    },
+    {
+      "reason": "holds a membership only on an account an administrator key controls, so paying against it would be paying ourselves"
+    },
+    {
+      "reason": "joined on a guest link with no passkey, so there is no account to put in a leaf"
+    },
+    {
+      "reason": "holds a membership only on an account an administrator key controls, so paying against it would be paying ourselves"
+    },
+    {
+      "reason": "joined on a guest link with no passkey, so there is no account to put in a leaf"
+    }
+  ]
+}

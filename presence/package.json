@@ -1,0 +1,15 @@
+{
+  "name": "seeds-presence",
+  "version": "2.0.0",
+  "description": "Build and verify per-session attendance roots: the computed evidence Seeds admission reads.",
+  "license": "Apache-2.0",
+  "type": "module",
+  "scripts": {
+    "self-test": "bun run attendance-root.ts self-test"
+  },
+  "dependencies": {
+    "@polkadot/api": "^16.5.6",
+    "@polkadot/util": "^14.0.3",
+    "@polkadot/util-crypto": "^14.0.3"
+  }
+}

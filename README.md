@@ -1,107 +1,54 @@
 # Seeds
 
-**Identity that emerges from witnessed participation.**
+**Identity grown from witnessed participation: a membership and contribution record a personhood check can sit beneath.**
 
-Seeds is [Birdbrain](https://birdbrain.wtf)'s Proof-of-Personhood and
-sensemaking layer. Instead of proving personhood by surveilling behaviour
-(writing-style fingerprints, biometrics, behavioural classifiers), a **Seed** is
-a *witnessed contribution record*: who was actually present, what they carried
-into the room, who they sat beside, what they committed to — derived from real
-sessions, bound (by its owner, not by us) to a self-custody key.
+A **Seed** is who someone is to a group, built from what they actually took part in: the sessions they were witnessed at, who they sat beside, what they put forward and which of it held up. It is bound to a key the person holds, not issued by anyone. Seeds is the set of rules that turns that into a membership with a vote, and a record of contributions that anyone can check.
 
-**Live demo:** https://birdbrain.wtf/seeds/forest — the Identity Forest, a
-deterministic render of a real community's Seeds in 1D / 2D / 3D / 4D.
+This repository is [Birdbrain](https://birdbrain.wtf)'s. It holds the protocol, a reference implementation, the tests that hold any implementation to it, and one group's tooling beside it.
 
-**Papers:** [Seeds: A Store of Values](https://github.com/Birdbrain-wtf/publications/tree/main/content/articles/seeds-a-store-of-values), the white paper, and [Seeds: A Chain with One Job](https://github.com/Birdbrain-wtf/publications/tree/main/content/articles/seeds-a-chain-with-one-job), the specification of the chain in [`chain/`](chain).
+## What is here
 
-## The thesis
+| Folder | What it is |
+| --- | --- |
+| [`spec/`](spec) | The protocol in two papers: [*Seeds: A Store of Values*](spec/seeds-intro.pdf), the white paper, and [*Seeds: A Chain with One Job*](spec/seeds.pdf), the specification |
+| [`chain/`](chain) | The reference runtime. Five pallets, one of them Seeds: admit, record, mint, vote, seat validators |
+| [`conformance/`](conformance) | The rules as 28 vectors. Any engine that claims to run Seeds is held to them. The reference runtime passes all 28 |
+| [`presence/`](presence) | Attendance roots: who was in the room, as a Merkle root anyone can rebuild. The evidence admission reads |
+| [`profiles/`](profiles) | Networks that run the protocol with their own settings. [`chaos-sessions/`](profiles/chaos-sessions) is the first, with the tooling that turns its sessions into Seed records and draws them as a forest |
 
-- **Personhood is relational.** You are evidenced by the web of people who have
-  actually worked beside you, not by a classifier's opinion of your prose.
-- **Pseudonymity is a feature, not an attack.** One person, many faces: the
-  canonical Seed stays bound to the person's own keys, while alter egos and
-  anonymous contributions remain possible — linkable back only by the person
-  themselves. Sybil-resistance comes from weight flowing through *witnessed,
-  real participation*, never from forbidding multiple identities. Faces
-  contribute; only the Seed holds a membership and a vote.
-- **Honest gaps, never faked.** People present in the room but thin in the
-  record render as gaps, not fabrications.
+The same rules also run as JAM services in a separate repository, [Jambo](https://github.com/Birdbrain-wtf/jambo).
 
-## The layers
+## The rules
 
-Seeds is one design carried down through several layers. Each layer does one thing and hands it to the next one, and no layer redoes another's work.
+| Rule | In the protocol |
+| --- | --- |
+| You are evidenced by people who were there | Admission takes two members naming the same session evidence |
+| Your key is yours | A member key comes from the person's own passkey. No operator holds it, and with no fees nobody has to sponsor it |
+| Only members write | A non-member's transaction is refused before it reaches the pool |
+| New units only where something held up | Units are minted when an unchallenged point matures, and nowhere else. Joining mints nothing. A network may start from balances claimable from an earlier ledger, which move only on the old key's signature |
+| Units are a record, not a currency | There is no transfer |
+| One member, one vote | Upgrades and the end of founding control are decided by members. No key can bypass a vote |
 
-| Layer | Where | What it does | Runs today |
-| --- | --- | --- | --- |
-| Evidence | [`seed-builder/`](seed-builder) | Turns witnessed sessions into per-person Seed records, shared concepts and typed graph edges | Daily, against a real community's sessions |
-| Relationships | [`participation-graph/`](participation-graph) | Folds comments, replies, mentions and endorsements into a seed-to-seed graph and a per-seed inbox | Yes |
-| Rendering | [`identity-forest/`](identity-forest) | Draws the Seeds as a generative forest, a pure function of the public record | Yes, at the live demo |
-| Settlement | [`chain/`](chain) | A chain with one job: members admit people against that evidence, new units appear only when a point holds up, and members vote on its rules | Lab, a three-node network |
-| Execution, next | [Jambo](https://github.com/Birdbrain-wtf/jambo), its own repo | A reduced JAM client that runs the same rules as small services. Its first is the member register | Lab, a six-validator demo |
+[`TRUST.md`](TRUST.md) says what each component is trusted with and why.
 
-```
-session transcripts
-      │
-      ▼
-seed-builder/          extract.py    → structured YAML per session (LLM-assisted)
-                       distribute.py → vault/seeds/<person>.md   (the Seed records)
-                                       vault/concepts/<slug>.md  (shared concepts)
-                                       _edges.yaml/.json         (typed graph edges)
-      │
-      ├──▶ participation-graph/   build.ts → graph.json + by-seed.json
-      │          │
-      │          ▼
-      │    identity-forest/       build.ts → forest.svg/json + index.html
-      │
-      ▼
-chain/                 witness · record · mint · vote · seat validators
-      ┆
-      ┆   the same rules, ported a service at a time
-      ▼
-jambo                  (separate repo)
-```
+## Protocol and profiles
 
-The first three stages are deterministic, re-runnable, and read-only over their sources. A Seed record is plain Markdown with YAML frontmatter, so it stays legible and portable, and it belongs to the community that produced it.
-
-## One set of rules, every layer
-
-| Rule | Off the chain | On the chain | In Jambo |
-| --- | --- | --- | --- |
-| You are evidenced by people who were there | A Seed is built from sessions you actually attended | Admission takes two members naming the same session evidence | Next: refine checks two members' signatures |
-| Your key is yours | The Seed binds to a key you hold | The member key comes from your own passkey. Only members can sign | Next: only a member's signature can get work onto a core |
-| New units only where something held up | | Minted when an unchallenged point matures, nowhere else. Joining mints nothing | Next: a unit ledger inside the service, separate from JAM's own balances |
-| One member, one vote | | Upgrades and founding control are decided by members | Next: members vote on the service's code. JAM itself sits outside that vote |
-| Gaps stay gaps | Someone thin in the record renders as a gap, never a guess | | |
-
-Where a cell is empty, that layer has nothing to say about the rule. [`TRUST.md`](TRUST.md) says what each component is trusted with and why.
+The protocol is kept small on purpose. A **profile** is a network running it with its own settings: the unit's name, how much a matured point creates, witnesses, caps, periods, seats. A profile may add funding, licences or prices above the chain, as contracts between people. It may never add anything that mints, gives a vote, or gives a place in line to whoever funds a group. See [`profiles/`](profiles).
 
 ## Running it
 
-Requirements: [Bun](https://bun.sh) (TypeScript stages), Python 3.11+ with
-`pyyaml` and `aiohttp` (builder stages).
-
 ```bash
-# 1. Build Seed records from extracted session YAML
-python3 seed-builder/distribute.py            # reads $SEEDS_VAULT (default ./vault)
-
-# 2. Build the participation graph
-bun run participation-graph/scripts/build.ts  # reads $COMMENT_ROOT, writes $PARTICIPATION_OUT
-
-# 3. Grow the forest
-bun run identity-forest/scripts/build.ts      # reads $SEEDS_DIR (default ./vault/seeds), writes identity-forest/out/
-
-# 4. Run the chain and walk every job on it (Rust, ~12 minutes once built)
-bash chain/scripts/e2e.sh
+bash chain/scripts/e2e.sh 2>&1 | tee run.log    # build, start three nodes, walk every rule (Rust, ~12 min once built)
+bun run conformance/check-log.ts run.log         # hold the run to the vectors
+cd presence && bun install && bun run attendance-root.ts self-test
 ```
 
-`extract.py` (transcript → structured YAML) calls an LLM over HTTP; by default
-it targets the maintainers' endpoint — point it at your own by editing the
-constants at the top. Everything downstream of extraction is model-free.
+## Releases
 
-## Provenance
+Every release is content-addressed, signed by Birdbrain's release key and fixed on a network Birdbrain runs. Git is the working copy; the root of trust is the CID and the signed commitment. See [`RELEASES.md`](RELEASES.md).
 
-This repo is the open-sourced Seeds stack from the Birdbrain project, exported
-from the live workspace where the first three layers run daily against a real
-community's sessions (36 sessions and 57 Seeds at the time of writing). The chain
-is lab code that has run as a three-node network. It is working software, not a
-specification. Licensed Apache-2.0.
+## Status
+
+Lab software. The reference chain has run as a three-node network and holds no value. The Chaos Sessions tooling runs daily against a real group's sessions. Computed admission (from attendance roots alone, challenged by exception) and links between points are specified as proposals and not built.
+
+Code is Apache-2.0. The papers are CC-BY-4.0.

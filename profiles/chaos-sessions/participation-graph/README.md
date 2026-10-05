@@ -9,7 +9,7 @@ that mint/re-anchor a Kreivo membership also draw an edge here. Alerts
 ## Build
 
 ```bash
-bun run participation-graph/scripts/build.ts
+bun run profiles/chaos-sessions/participation-graph/scripts/build.ts
 ```
 
 - **Input** — every `*.jsonl` under the comment roots listed in `build.ts`
