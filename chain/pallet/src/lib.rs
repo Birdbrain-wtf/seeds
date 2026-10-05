@@ -1,6 +1,6 @@
 //! # Seeds
 //!
-//! The one application pallet of a chain with one job. Build and run notes:
+//! The one application pallet of the Seeds reference runtime. Build and run notes:
 //! `chain/README.md`.
 //!
 //! Bitcoin kept one ledger. This keeps one too, of who joined, what they put

@@ -1,6 +1,6 @@
 [package]
 name = "seeds-runtime"
-description = "A chain with one job: System, Timestamp, Aura, Grandpa and Seeds."
+description = "The Seeds reference runtime: System, Timestamp, Aura, Grandpa and Seeds."
 version = "0.0.0"
 license.workspace = true
 authors.workspace = true

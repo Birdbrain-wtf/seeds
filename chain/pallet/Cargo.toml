@@ -1,6 +1,6 @@
 [package]
 name = "pallet-seeds"
-description = "The one application pallet of a chain with one job: admit, mint, record, approve upgrades, seat validators."
+description = "The one application pallet of the Seeds reference runtime: admit, mint, record, approve upgrades, seat validators."
 version = "0.1.0"
 license = "Apache-2.0"
 authors.workspace = true

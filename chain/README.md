@@ -1,6 +1,6 @@
 # The Seeds chain
 
-A chain with one job: keep the record of who joined a community, what they put forward, and which of it held up.
+The reference runtime of the Seeds protocol. It keeps the record of who joined a community, what they put forward, and which of it held up.
 
 The rest of this repo works out who a person is from what they actually took part in. This is where that becomes binding. Members admit people, and the record of what held up is kept, by rules nobody can quietly change.
 

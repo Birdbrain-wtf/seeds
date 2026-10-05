@@ -10,7 +10,7 @@ This repository is [Birdbrain](https://birdbrain.wtf)'s. It holds the protocol, 
 
 | Folder | What it is |
 | --- | --- |
-| [`spec/`](spec) | The protocol in two papers: [*Seeds: A Store of Values*](spec/seeds-intro.pdf), the white paper, and [*Seeds: A Chain with One Job*](spec/seeds.pdf), the specification |
+| [`spec/`](spec) | The protocol in two papers: [*Seeds: A Store of Values*](spec/seeds-intro.pdf), the white paper, and [*Seeds: Protocol Specification*](spec/seeds.pdf), the specification |
 | [`chain/`](chain) | The reference runtime. Five pallets, one of them Seeds: admit, record, mint, vote, seat validators |
 | [`conformance/`](conformance) | The rules as 28 vectors. Any engine that claims to run Seeds is held to them. The reference runtime passes all 28 |
 | [`presence/`](presence) | Attendance roots: who was in the room, as a Merkle root anyone can rebuild. The evidence admission reads |

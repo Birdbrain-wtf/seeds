@@ -1,6 +1,6 @@
 [package]
 name = "seeds-node"
-description = "Node for the Birdbrain seeds chain: a chain with one job."
+description = "Node for the Seeds reference runtime."
 version = "0.0.0"
 license.workspace = true
 authors.workspace = true

@@ -1,4 +1,4 @@
-//! A chain with one job. Five pallets: `System` (the block, nonces, the event
+//! The Seeds reference runtime. Five pallets: `System` (the block, nonces, the event
 //! log), `Timestamp`, `Aura` and `Grandpa` (consensus plumbing), and `Seeds`,
 //! which does everything this chain is for. No balances, no fees, no sudo.
 //! Build and run notes: `chain/README.md`.
