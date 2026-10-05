@@ -13,7 +13,7 @@ import { stringToU8a, u8aConcat, u8aToHex } from "@polkadot/util";
 
 const WASM = process.argv[2];
 if (!WASM) throw new Error("usage: bun run seeds-e2e.ts path/to/next-runtime.wasm (scripts/e2e.sh builds one)");
-const KAB = 10n ** 12n;
+const UNIT = 10n ** 12n;
 const EV = blake2AsHex("session attendance root (stand-in)");
 
 await cryptoWaitReady();
@@ -40,7 +40,7 @@ async function until(n: number) {
   while ((await head()) < n) await Bun.sleep(3000);
 }
 const bal = async (a: string) => BigInt((await api.query.seeds.balances(a)).toString());
-const fmt = (v: bigint) => `${Number(v) / 1e12} KAB`;
+const fmt = (v: bigint) => `${Number(v) / 1e12} units`;
 
 function send(tx: any, signer?: any): Promise<string[]> {
   return new Promise((resolve, reject) => {
@@ -64,7 +64,8 @@ check(
 );
 const v0 = (await api.rpc.state.getRuntimeVersion()).specVersion.toNumber();
 check((await api.query.seeds.memberCount()).toNumber() === 3, "genesis: three founders");
-check((await bal(alice.address)) === 100n * KAB, "founders hold their admission mint", fmt(await bal(alice.address)));
+check((await bal(alice.address)) === 0n, "founders hold nothing: joining mints no units", fmt(await bal(alice.address)));
+check(api.tx.seeds.transfer === undefined, "there is no transfer call: units are a record, not a currency");
 check((await api.query.seeds.foundingActive()).isTrue, "founding control is on");
 check(((await api.query.aura.authorities()) as any).length === 2, "two validators at genesis");
 
@@ -86,16 +87,24 @@ try {
   check(e.message === "seeds.CandidacyMismatch", "witnesses must agree on the evidence", e.message);
 }
 const admitted = await send(api.tx.seeds.witness(dave.address, 0, EV), bob);
-check(admitted.includes("seeds.Admitted") && admitted.includes("seeds.Minted"), "second witness admits Dave and mints", admitted.filter((e) => e.startsWith("seeds")).join(" "));
-check((await bal(dave.address)) === 100n * KAB, "Dave holds 100 KAB");
+check(admitted.includes("seeds.Admitted") && !admitted.includes("seeds.Minted"), "second witness admits Dave, and nothing is minted", admitted.filter((e) => e.startsWith("seeds")).join(" "));
+check((await bal(dave.address)) === 0n, "Dave arrives with a vote and an empty balance");
 const events = await send(api.tx.system.remark("first words"), dave);
 check(events.includes("system.ExtrinsicSuccess"), "Dave can now write, feelessly");
 
 // -------------------------------------------------------------------- claim
-const msg = u8aConcat(stringToU8a("birdbrain-claim:"), decodeAddress(dave.address));
+const genesis = (await api.rpc.chain.getBlockHash(0)).toU8a();
+const msg = u8aConcat(stringToU8a("seeds-claim:"), genesis, decodeAddress(dave.address));
 const ferdieKey = u8aToHex(ferdie.publicKey);
 try {
-  const forged = ferdie.sign(u8aConcat(stringToU8a("birdbrain-claim:"), decodeAddress(eve.address)));
+  const elsewhere = ferdie.sign(u8aConcat(stringToU8a("seeds-claim:"), new Uint8Array(32).fill(0xab), decodeAddress(dave.address)));
+  await send(api.tx.seeds.claim(dave.address, ferdieKey, { Sr25519: elsewhere }));
+  check(false, "a claim signed for another network is refused");
+} catch (e: any) {
+  check(/1010|Invalid|BadProof/i.test(e.message), "a claim signed for another network is refused", e.message.slice(0, 60));
+}
+try {
+  const forged = ferdie.sign(u8aConcat(stringToU8a("seeds-claim:"), genesis, decodeAddress(eve.address)));
   await send(api.tx.seeds.claim(dave.address, ferdieKey, { Sr25519: forged }));
   check(false, "a claim signed for someone else is refused");
 } catch (e: any) {
@@ -103,7 +112,7 @@ try {
 }
 const before = await bal(dave.address);
 await send(api.tx.seeds.claim(dave.address, ferdieKey, { Sr25519: ferdie.sign(msg) }));
-check((await bal(dave.address)) - before === 1000n * KAB, "Ferdie's old key moves the snapshot to Dave, unsigned by Dave", fmt((await bal(dave.address)) - before));
+check((await bal(dave.address)) - before === 1000n * UNIT, "Ferdie's old key moves the snapshot to Dave, unsigned by Dave", fmt((await bal(dave.address)) - before));
 check((await api.query.seeds.unclaimed()).toString() === "0", "nothing left unclaimed");
 
 // ------------------------------------------------------------ keys, a point
@@ -111,11 +120,18 @@ await send(api.tx.seeds.setKeys({ aura: u8aToHex(dave.publicKey), grandpa: u8aTo
 check(((await api.query.seeds.keyHolders()) as any).length === 3, "Dave queues for a seat");
 
 const digest = blake2AsHex("a point for the graph");
-await send(api.tx.seeds.proposePoint(digest, 5n * KAB, "e2e"), dave);
+await send(api.tx.seeds.proposePoint(digest, "e2e"), dave);
 const point: any = (await api.query.seeds.points(digest)).unwrap();
 const matures = point.maturesAt.toNumber();
 await send(api.tx.seeds.challenge(digest), bob);
-check(point.status.isPending, `point bonded, matures at #${matures}; one challenge is below the threshold of three`);
+check(point.status.isPending, `a point with no bond, matures at #${matures}; one challenge is below the threshold of three`);
+
+const weak = blake2AsHex("a point the room rejects");
+await send(api.tx.seeds.proposePoint(weak, "weak"), alice);
+for (const who of [bob, charlie]) await send(api.tx.seeds.challenge(weak), who);
+const failed = await send(api.tx.seeds.challenge(weak), dave);
+const aliceRec: any = (await api.query.seeds.members(alice.address)).unwrap();
+check(failed.includes("seeds.Failed") && aliceRec.strikes.toNumber() === 1, "three challenges fail a point: nothing minted, a strike on the proposer", `strikes ${aliceRec.strikes}`);
 
 // ------------------------------------------------------------------ upgrade
 const wasm = new Uint8Array(await Bun.file(WASM).arrayBuffer());
@@ -148,9 +164,9 @@ console.log(`      waiting for the point to mature at #${matures}`);
 await until(matures + 1);
 const p2: any = (await api.query.seeds.points(digest)).unwrap();
 check(p2.status.isMatured, "the point matured", p2.status.toString());
-check((await bal(dave.address)) === 1100n * KAB + 10n * KAB, "bond back plus the maturity mint", fmt(await bal(dave.address)));
+check((await bal(dave.address)) === 1000n * UNIT + 10n * UNIT, "the maturity mint, the only one", fmt(await bal(dave.address)));
 const issuance = BigInt((await api.query.seeds.totalIssuance()).toString());
-check(issuance === (4n * 100n + 10n + 1000n) * KAB, "issuance = four admissions + one maturity + the snapshot, nothing else", fmt(issuance));
+check(issuance === (10n + 1000n) * UNIT, "issuance = one maturity + the snapshot, nothing else", fmt(issuance));
 
 // ---------------------------------------------------------------- the seat
 const era = (await api.consts.seeds.eraLength as any).toNumber();

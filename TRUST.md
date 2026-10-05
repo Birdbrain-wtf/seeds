@@ -30,7 +30,7 @@ Seeds ships under two governing constraints:
 | Seeds chain admission (`chain/`) | trust-minimised | members admit by witnessing against shared evidence; every rule is on-chain and every mint can be checked by anyone |
 | Seeds chain member key | zero-trust | derived on the member's own device from their passkey; no operator ever holds it, and with no fees nobody has to sponsor it |
 | Seeds chain founding control | trust-minimised, with a stated end | a founder's upgrade passes unless a third of members object; members end that control by simple majority, once, for good |
-| minijam validators | trust-minimised (lab) | a named validator set, said plainly; opening it up is the published next step, not an assumption |
+| Jambo validators | trust-minimised (lab) | a named validator set, said plainly; opening it up is the published next step, not an assumption |
 
 ## The one accepted custody reason
 

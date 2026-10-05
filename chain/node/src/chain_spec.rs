@@ -4,10 +4,10 @@ use seeds_runtime::WASM_BINARY;
 /// Specialized `ChainSpec`. This is a specialization of the general Substrate ChainSpec type.
 pub type ChainSpec = sc_service::GenericChainSpec;
 
-/// KAB at 12 decimals, so wallets show amounts the way the chain means them.
+/// A generic unit at 12 decimals; a network running the protocol names its own, so wallets show amounts the way the chain means them.
 fn properties() -> sc_service::Properties {
 	let mut p = sc_service::Properties::new();
-	p.insert("tokenSymbol".into(), "KAB".into());
+	p.insert("tokenSymbol".into(), "UNIT".into());
 	p.insert("tokenDecimals".into(), 12.into());
 	p.insert("ss58Format".into(), 42.into());
 	p

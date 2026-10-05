@@ -15,11 +15,13 @@
 //!    member later expelled leaves a strike on everyone who witnessed them. One
 //!    key, one membership. The chain cannot tell whether two keys are one person,
 //!    so the witnesses, the allowance, the cap and the strikes carry that.
-//! 2. **Mint.** KAB comes into existence in exactly two places: when a person is
-//!    admitted, and when a proposed point in the knowledge graph matures.
-//! 3. **Record.** Proposing a point takes a KAB bond. It is returned with the
-//!    maturity mint if nobody successfully challenges it, and burned if enough
-//!    distinct members do. Nothing goes to a treasury, because there is none.
+//! 2. **Mint.** New units come into existence in exactly one place: when a
+//!    proposed point matures. Joining creates none. Each network names its own
+//!    unit and sets the amount; the pallet calls it an amount and nothing else.
+//! 3. **Record.** A member puts a point forward with no bond and no fee. If
+//!    nobody successfully challenges it, it matures and mints. If enough distinct
+//!    members do, it fails, and the failure counts against the proposer's
+//!    standing as a strike. A member may hold only a few points open at once.
 //! 4. **Approve upgrades.** Members vote, one member one vote. While the founding
 //!    set holds control, a founder's proposal passes unless a third of members
 //!    object. Members end that control by simple majority, once, for good.
@@ -30,14 +32,18 @@
 //!
 //! Only members may sign transactions ([`OnlyMembers`]), which is what stands in
 //! for fees as the guard against spam. The one unsigned call is [`Pallet::claim`],
-//! which lets a holder from the old chain move a snapshot balance with a signature
-//! from their old key, so nobody's KAB moves without them.
+//! which lets a holder from the old chain move a snapshot balance with a proof
+//! from their old key, so nobody's units move without them. Units do not move
+//! between members: they are a record of what a member added, not a currency. What counts as a proof
+//! is in [`ownership`]: one variant per kind of key, passkeys included.
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
 extern crate alloc;
 
 pub use pallet::*;
+
+pub mod ownership;
 
 #[cfg(test)]
 mod tests;
@@ -59,27 +65,30 @@ impl<Keys> ValidatorSet<Keys> for () {
 #[frame_support::pallet]
 pub mod pallet {
 	use super::ValidatorSet;
+	pub use crate::ownership::OwnershipProof;
 	use alloc::vec::Vec;
 	use codec::{Decode, DecodeWithMemTracking, Encode, MaxEncodedLen};
 	use frame_support::{
 		pallet_prelude::*,
-		sp_runtime::traits::{Saturating, UniqueSaturatedInto},
+		sp_runtime::traits::{Saturating, UniqueSaturatedInto, Zero},
 		traits::{BuildGenesisConfig, OriginTrait},
 	};
 	use frame_system::pallet_prelude::*;
 	use scale_info::TypeInfo;
-	use sp_core::{ed25519, sr25519, H256};
+	use sp_core::H256;
 
-	pub type Kab = u128;
+	pub type Amount = u128;
 	pub type CommunityId = u32;
 	pub type MotionId = u32;
 
 	/// The founding community, the one the genesis members belong to.
 	pub const FOUNDING_COMMUNITY: CommunityId = 0;
 
-	/// What a holder of the old chain signs to move a snapshot balance:
-	/// this prefix followed by the SCALE-encoded destination account.
-	pub const CLAIM_PREFIX: &[u8] = b"birdbrain-claim:";
+	/// What a holder of the old chain signs to move a snapshot balance: this
+	/// prefix, then this network's genesis hash, then the SCALE-encoded
+	/// destination account. The genesis hash stops a claim signed for one Seeds
+	/// network being replayed on another that carries the same snapshot.
+	pub const CLAIM_PREFIX: &[u8] = b"seeds-claim:";
 
 	#[pallet::pallet]
 	pub struct Pallet<T>(_);
@@ -110,19 +119,17 @@ pub mod pallet {
 		#[pallet::constant]
 		type MaxStrikes: Get<u32>;
 
-		/// KAB minted to a person on admission.
+		/// Units minted to the proposer when a point matures. The only mint.
 		#[pallet::constant]
-		type AdmissionMint: Get<Kab>;
-		/// KAB minted to the proposer when a point matures.
+		type MaturityMint: Get<Amount>;
+		/// Points one member may have pending at once. With no bond and no fee,
+		/// this is what stops one member filling the record.
 		#[pallet::constant]
-		type MaturityMint: Get<Kab>;
-		/// Smallest bond a point can be proposed with.
-		#[pallet::constant]
-		type MinBond: Get<Kab>;
+		type MaxPendingPoints: Get<u32>;
 		/// Blocks from proposal to maturity, during which a point can be challenged.
 		#[pallet::constant]
 		type MaturityPeriod: Get<u32>;
-		/// Distinct members whose challenges forfeit a point.
+		/// Distinct members whose challenges fail a point.
 		#[pallet::constant]
 		type ChallengeThreshold: Get<u32>;
 		/// Points that can mature in a single block.
@@ -157,7 +164,10 @@ pub mod pallet {
 		/// Who vouched. Kept so an expulsion can reach them.
 		pub witnesses: BoundedVec<T::AccountId, T::WitnessesRequired>,
 		pub founder: bool,
+		/// Witnessing someone later expelled, or a point that failed.
 		pub strikes: u32,
+		/// Points put forward that are still pending.
+		pub pending_points: u32,
 	}
 
 	#[derive(Encode, Decode, DecodeWithMemTracking, CloneNoBound, PartialEqNoBound, EqNoBound, DebugNoBound, TypeInfo, MaxEncodedLen)]
@@ -181,14 +191,13 @@ pub mod pallet {
 	pub enum PointStatus {
 		Pending,
 		Matured,
-		Forfeited,
+		Failed,
 	}
 
 	#[derive(Encode, Decode, DecodeWithMemTracking, CloneNoBound, PartialEqNoBound, EqNoBound, DebugNoBound, TypeInfo, MaxEncodedLen)]
 	#[scale_info(skip_type_params(T))]
 	pub struct Point<T: Config> {
 		pub proposer: T::AccountId,
-		pub bond: Kab,
 		pub proposed_at: BlockNumberFor<T>,
 		pub matures_at: BlockNumberFor<T>,
 		pub challengers: BoundedVec<T::AccountId, T::ChallengeThreshold>,
@@ -228,14 +237,6 @@ pub mod pallet {
 		pub electorate_below: u64,
 	}
 
-	/// A signature from a key on the old chain. Both schemes give an account id
-	/// equal to the public key, which is what the snapshot is keyed on.
-	#[derive(Encode, Decode, DecodeWithMemTracking, Clone, PartialEq, Eq, Debug, TypeInfo, MaxEncodedLen)]
-	pub enum ClaimSignature {
-		Sr25519(sr25519::Signature),
-		Ed25519(ed25519::Signature),
-	}
-
 	// -------------------------------------------------------------- storage
 
 	#[pallet::storage]
@@ -261,19 +262,19 @@ pub mod pallet {
 	pub type NextCommunityId<T> = StorageValue<_, CommunityId, ValueQuery>;
 
 	#[pallet::storage]
-	pub type Balances<T: Config> = StorageMap<_, Blake2_128Concat, T::AccountId, Kab, ValueQuery>;
+	pub type Balances<T: Config> = StorageMap<_, Blake2_128Concat, T::AccountId, Amount, ValueQuery>;
 
-	/// Everything that exists: minted, plus the old chain's snapshot, less burned bonds.
+	/// Everything that exists: minted, plus the old chain's snapshot.
 	#[pallet::storage]
-	pub type TotalIssuance<T> = StorageValue<_, Kab, ValueQuery>;
+	pub type TotalIssuance<T> = StorageValue<_, Amount, ValueQuery>;
 
 	/// The part of the snapshot nobody has claimed yet.
 	#[pallet::storage]
-	pub type Unclaimed<T> = StorageValue<_, Kab, ValueQuery>;
+	pub type Unclaimed<T> = StorageValue<_, Amount, ValueQuery>;
 
-	/// Old-chain public key -> KAB waiting to be claimed.
+	/// Old-chain public key -> units waiting to be claimed.
 	#[pallet::storage]
-	pub type Claims<T> = StorageMap<_, Identity, [u8; 32], Kab>;
+	pub type Claims<T> = StorageMap<_, Identity, [u8; 32], Amount>;
 
 	#[pallet::storage]
 	pub type Points<T: Config> = StorageMap<_, Identity, H256, Point<T>>;
@@ -321,7 +322,7 @@ pub mod pallet {
 		/// Admission cap per era for the founding community.
 		pub founding_cap: u32,
 		/// The old chain's balances, keyed on public key, waiting to be claimed.
-		pub claims: Vec<([u8; 32], Kab)>,
+		pub claims: Vec<([u8; 32], Amount)>,
 	}
 
 	#[pallet::genesis_build]
@@ -341,7 +342,7 @@ pub mod pallet {
 			}
 			let seated = Pallet::<T>::seat_list();
 			Validators::<T>::put(seated);
-			let mut total: Kab = 0;
+			let mut total: Amount = 0;
 			for (key, amount) in &self.claims {
 				Claims::<T>::insert(key, amount);
 				total = total.saturating_add(*amount);
@@ -355,7 +356,6 @@ pub mod pallet {
 
 	#[derive(Encode, Decode, DecodeWithMemTracking, Clone, Copy, PartialEq, Eq, Debug, TypeInfo)]
 	pub enum MintReason {
-		Admission,
 		Maturity,
 	}
 
@@ -364,11 +364,12 @@ pub mod pallet {
 	pub enum Event<T: Config> {
 		Witnessed { candidate: T::AccountId, by: T::AccountId, community: CommunityId, count: u32 },
 		Admitted { who: T::AccountId, community: CommunityId, index: u64 },
-		Minted { to: T::AccountId, amount: Kab, reason: MintReason },
-		Proposed { digest: H256, proposer: T::AccountId, bond: Kab },
+		Minted { to: T::AccountId, amount: Amount, reason: MintReason },
+		Proposed { digest: H256, proposer: T::AccountId },
 		Challenged { digest: H256, by: T::AccountId, count: u32 },
 		Matured { digest: H256, proposer: T::AccountId },
-		Forfeited { digest: H256, burned: Kab },
+		/// Enough members challenged it. Nothing is minted and the proposer takes a strike.
+		Failed { digest: H256, proposer: T::AccountId },
 		MotionOpened { id: MotionId, proposer: T::AccountId, kind: MotionKind<T> },
 		Voted { id: MotionId, who: T::AccountId, aye: bool },
 		MotionClosed { id: MotionId, passed: bool, ayes: u32, nays: u32, electorate: u32 },
@@ -377,8 +378,7 @@ pub mod pallet {
 		FoundingEnded,
 		KeysSet { who: T::AccountId },
 		NewValidators { count: u32 },
-		Claimed { old: [u8; 32], to: T::AccountId, amount: Kab },
-		Transferred { from: T::AccountId, to: T::AccountId, amount: Kab },
+		Claimed { old: [u8; 32], to: T::AccountId, amount: Amount },
 	}
 
 	#[pallet::error]
@@ -394,8 +394,7 @@ pub mod pallet {
 		CandidacyMismatch,
 		AlreadyWitnessed,
 		CommunityFull,
-		BondTooSmall,
-		InsufficientKab,
+		TooManyPending,
 		PointExists,
 		NoSuchPoint,
 		NotPending,
@@ -513,17 +512,18 @@ pub mod pallet {
 			Ok(())
 		}
 
-		/// Put a point forward for the knowledge graph, bonded in KAB. `digest`
-		/// commits to the content, which stays off chain.
+		/// Put a point forward for the record. `digest` commits to the content,
+		/// which stays off chain. No bond and no fee: a point that fails costs
+		/// the proposer a strike instead.
 		#[pallet::call_index(2)]
 		#[pallet::weight(Weight::from_parts(40_000_000, 0).saturating_add(T::DbWeight::get().reads_writes(4, 4)))]
-		pub fn propose_point(origin: OriginFor<T>, digest: H256, bond: Kab, note: Vec<u8>) -> DispatchResult {
+		pub fn propose_point(origin: OriginFor<T>, digest: H256, note: Vec<u8>) -> DispatchResult {
 			let who = ensure_signed(origin)?;
-			ensure!(Members::<T>::contains_key(&who), Error::<T>::NotMember);
-			ensure!(bond >= T::MinBond::get(), Error::<T>::BondTooSmall);
+			let mut me = Members::<T>::get(&who).ok_or(Error::<T>::NotMember)?;
+			ensure!(me.strikes < T::MaxStrikes::get(), Error::<T>::Struck);
+			ensure!(me.pending_points < T::MaxPendingPoints::get(), Error::<T>::TooManyPending);
 			ensure!(!Points::<T>::contains_key(digest), Error::<T>::PointExists);
 			let note: BoundedVec<u8, T::MaxNoteLen> = note.try_into().map_err(|_| Error::<T>::NoteTooLong)?;
-			Self::debit(&who, bond)?;
 			let now = frame_system::Pallet::<T>::block_number();
 			let matures_at = now.saturating_add(T::MaturityPeriod::get().max(1).into());
 			MaturingAt::<T>::try_mutate(matures_at, |due| due.try_push(digest))
@@ -532,7 +532,6 @@ pub mod pallet {
 				digest,
 				Point {
 					proposer: who.clone(),
-					bond,
 					proposed_at: now,
 					matures_at,
 					challengers: Default::default(),
@@ -540,11 +539,13 @@ pub mod pallet {
 					status: PointStatus::Pending,
 				},
 			);
-			Self::deposit_event(Event::Proposed { digest, proposer: who, bond });
+			me.pending_points = me.pending_points.saturating_add(1);
+			Members::<T>::insert(&who, me);
+			Self::deposit_event(Event::Proposed { digest, proposer: who });
 			Ok(())
 		}
 
-		/// Object to a pending point. Enough distinct objections forfeit its bond.
+		/// Object to a pending point. Enough distinct objections fail it.
 		#[pallet::call_index(3)]
 		#[pallet::weight(Weight::from_parts(30_000_000, 0).saturating_add(T::DbWeight::get().reads_writes(3, 2)))]
 		pub fn challenge(origin: OriginFor<T>, digest: H256) -> DispatchResult {
@@ -558,7 +559,7 @@ pub mod pallet {
 			let count = p.challengers.len() as u32;
 			Self::deposit_event(Event::Challenged { digest, by: who, count });
 			if count >= T::ChallengeThreshold::get() {
-				Self::forfeit(digest, &mut p);
+				Self::fail(digest, &mut p);
 			}
 			Points::<T>::insert(digest, p);
 			Ok(())
@@ -674,16 +675,18 @@ pub mod pallet {
 			Ok(())
 		}
 
-		/// Move a snapshot balance from the old chain. Unsigned: the signature is
-		/// from the old key, over `CLAIM_PREFIX ++ dest.encode()` (raw, or wrapped
-		/// in `<Bytes>…</Bytes>` as browser wallets sign it).
+		/// Move a snapshot balance from the old chain. Unsigned: the proof is from
+		/// the old key, over `CLAIM_PREFIX ++ genesis_hash ++ dest.encode()`. Any ownership type
+		/// that controls the old account id will do (see [`crate::ownership`]).
 		#[pallet::call_index(7)]
-		#[pallet::weight(Weight::from_parts(80_000_000, 0).saturating_add(T::DbWeight::get().reads_writes(3, 3)))]
+		#[pallet::weight(Weight::from_parts(20_000_000, 0)
+			.saturating_add(signature.verify_weight())
+			.saturating_add(T::DbWeight::get().reads_writes(3, 3)))]
 		pub fn claim(
 			origin: OriginFor<T>,
 			dest: T::AccountId,
 			old: [u8; 32],
-			signature: ClaimSignature,
+			signature: OwnershipProof,
 		) -> DispatchResult {
 			ensure_none(origin)?;
 			ensure!(Self::claim_signature_ok(&dest, &old, &signature), Error::<T>::BadClaimSignature);
@@ -694,19 +697,6 @@ pub mod pallet {
 			Ok(())
 		}
 
-		/// Move KAB to another member. KAB is a participation record, so it only
-		/// moves between people inside the network.
-		#[pallet::call_index(8)]
-		#[pallet::weight(Weight::from_parts(25_000_000, 0).saturating_add(T::DbWeight::get().reads_writes(3, 2)))]
-		pub fn transfer(origin: OriginFor<T>, to: T::AccountId, amount: Kab) -> DispatchResult {
-			let from = ensure_signed(origin)?;
-			ensure!(Members::<T>::contains_key(&from), Error::<T>::NotMember);
-			ensure!(Members::<T>::contains_key(&to), Error::<T>::NotMember);
-			Self::debit(&from, amount)?;
-			Balances::<T>::mutate(&to, |b| *b = b.saturating_add(amount));
-			Self::deposit_event(Event::Transferred { from, to, amount });
-			Ok(())
-		}
 	}
 
 	#[pallet::validate_unsigned]
@@ -766,6 +756,7 @@ pub mod pallet {
 					witnesses,
 					founder,
 					strikes: 0,
+					pending_points: 0,
 				},
 			);
 			MemberCount::<T>::mutate(|n| *n = n.saturating_add(1));
@@ -777,12 +768,11 @@ pub mod pallet {
 			// No balances pallet, so nothing else gives the account a provider, and
 			// frame_system refuses a nonce from an account without one.
 			frame_system::Pallet::<T>::inc_providers(&who);
-			Self::deposit_event(Event::Admitted { who: who.clone(), community, index });
-			Self::mint(&who, T::AdmissionMint::get(), MintReason::Admission);
+			Self::deposit_event(Event::Admitted { who, community, index });
 		}
 
-		/// The only place KAB comes into existence.
-		fn mint(to: &T::AccountId, amount: Kab, reason: MintReason) {
+		/// The only place units come into existence.
+		fn mint(to: &T::AccountId, amount: Amount, reason: MintReason) {
 			if amount == 0 {
 				return;
 			}
@@ -791,12 +781,6 @@ pub mod pallet {
 			Self::deposit_event(Event::Minted { to: to.clone(), amount, reason });
 		}
 
-		fn debit(who: &T::AccountId, amount: Kab) -> DispatchResult {
-			Balances::<T>::try_mutate(who, |b| {
-				*b = b.checked_sub(amount).ok_or(Error::<T>::InsufficientKab)?;
-				Ok(())
-			})
-		}
 
 		fn mature(digest: H256) {
 			let Some(mut p) = Points::<T>::get(digest) else { return };
@@ -804,21 +788,34 @@ pub mod pallet {
 				return;
 			}
 			if !Members::<T>::contains_key(&p.proposer) {
-				Self::forfeit(digest, &mut p);
+				p.status = PointStatus::Failed;
 			} else {
 				p.status = PointStatus::Matured;
-				Balances::<T>::mutate(&p.proposer, |b| *b = b.saturating_add(p.bond));
+				Self::release_pending(&p.proposer);
 				Self::mint(&p.proposer, T::MaturityMint::get(), MintReason::Maturity);
 				Self::deposit_event(Event::Matured { digest, proposer: p.proposer.clone() });
 			}
 			Points::<T>::insert(digest, p);
 		}
 
-		/// The bond is burned: there is no treasury to send it to.
-		fn forfeit(digest: H256, p: &mut Point<T>) {
-			p.status = PointStatus::Forfeited;
-			TotalIssuance::<T>::mutate(|t| *t = t.saturating_sub(p.bond));
-			Self::deposit_event(Event::Forfeited { digest, burned: p.bond });
+		/// A challenged point mints nothing and leaves a strike on its proposer.
+		fn fail(digest: H256, p: &mut Point<T>) {
+			p.status = PointStatus::Failed;
+			Members::<T>::mutate(&p.proposer, |m| {
+				if let Some(m) = m {
+					m.pending_points = m.pending_points.saturating_sub(1);
+					m.strikes = m.strikes.saturating_add(1);
+				}
+			});
+			Self::deposit_event(Event::Failed { digest, proposer: p.proposer.clone() });
+		}
+
+		fn release_pending(who: &T::AccountId) {
+			Members::<T>::mutate(who, |m| {
+				if let Some(m) = m {
+					m.pending_points = m.pending_points.saturating_sub(1)
+				}
+			});
 		}
 
 		fn enact(kind: MotionKind<T>) {
@@ -912,24 +909,15 @@ pub mod pallet {
 			weight
 		}
 
-		pub fn claim_signature_ok(dest: &T::AccountId, old: &[u8; 32], sig: &ClaimSignature) -> bool {
+		pub fn claim_message(dest: &T::AccountId) -> Vec<u8> {
 			let mut msg = CLAIM_PREFIX.to_vec();
+			frame_system::Pallet::<T>::block_hash(BlockNumberFor::<T>::zero()).encode_to(&mut msg);
 			dest.encode_to(&mut msg);
-			let mut wrapped = b"<Bytes>".to_vec();
-			wrapped.extend_from_slice(&msg);
-			wrapped.extend_from_slice(b"</Bytes>");
-			match sig {
-				ClaimSignature::Sr25519(s) => {
-					let key = sr25519::Public::from_raw(*old);
-					sp_io::crypto::sr25519_verify(s, &msg, &key) ||
-						sp_io::crypto::sr25519_verify(s, &wrapped, &key)
-				},
-				ClaimSignature::Ed25519(s) => {
-					let key = ed25519::Public::from_raw(*old);
-					sp_io::crypto::ed25519_verify(s, &msg, &key) ||
-						sp_io::crypto::ed25519_verify(s, &wrapped, &key)
-				},
-			}
+			msg
+		}
+
+		pub fn claim_signature_ok(dest: &T::AccountId, old: &[u8; 32], sig: &OwnershipProof) -> bool {
+			sig.proves(old, &Self::claim_message(dest))
 		}
 	}
 

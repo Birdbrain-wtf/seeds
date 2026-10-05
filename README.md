@@ -34,8 +34,8 @@ Seeds is one design carried down through several layers. Each layer does one thi
 | Evidence | [`seed-builder/`](seed-builder) | Turns witnessed sessions into per-person Seed records, shared concepts and typed graph edges | Daily, against a real community's sessions |
 | Relationships | [`participation-graph/`](participation-graph) | Folds comments, replies, mentions and endorsements into a seed-to-seed graph and a per-seed inbox | Yes |
 | Rendering | [`identity-forest/`](identity-forest) | Draws the Seeds as a generative forest, a pure function of the public record | Yes, at the live demo |
-| Settlement | [`chain/`](chain) | A chain with one job: members admit people against that evidence, KAB is minted only when someone is admitted or a point holds up, and members vote on its rules | Lab, a three-node network |
-| Execution, next | [minijam](https://github.com/Birdbrain-wtf/minijam), its own repo | A reduced JAM client that runs the same rules as small services. Its first is the member register | Lab, a six-validator demo |
+| Settlement | [`chain/`](chain) | A chain with one job: members admit people against that evidence, new units appear only when a point holds up, and members vote on its rules | Lab, a three-node network |
+| Execution, next | [Jambo](https://github.com/Birdbrain-wtf/jambo), its own repo | A reduced JAM client that runs the same rules as small services. Its first is the member register | Lab, a six-validator demo |
 
 ```
 session transcripts
@@ -52,22 +52,22 @@ seed-builder/          extract.py    → structured YAML per session (LLM-assist
       │    identity-forest/       build.ts → forest.svg/json + index.html
       │
       ▼
-chain/                 witness · mint · record · vote · seat validators
+chain/                 witness · record · mint · vote · seat validators
       ┆
       ┆   the same rules, ported a service at a time
       ▼
-minijam                (separate repo)
+jambo                  (separate repo)
 ```
 
 The first three stages are deterministic, re-runnable, and read-only over their sources. A Seed record is plain Markdown with YAML frontmatter, so it stays legible and portable, and it belongs to the community that produced it.
 
 ## One set of rules, every layer
 
-| Rule | Off the chain | On the chain | In minijam |
+| Rule | Off the chain | On the chain | In Jambo |
 | --- | --- | --- | --- |
 | You are evidenced by people who were there | A Seed is built from sessions you actually attended | Admission takes two members naming the same session evidence | Next: refine checks two members' signatures |
 | Your key is yours | The Seed binds to a key you hold | The member key comes from your own passkey. Only members can sign | Next: only a member's signature can get work onto a core |
-| New KAB only where something held up | | Minted on admission and when an unchallenged point matures, nowhere else | Next: a KAB ledger inside the service, separate from JAM's own balances |
+| New units only where something held up | | Minted when an unchallenged point matures, nowhere else. Joining mints nothing | Next: a unit ledger inside the service, separate from JAM's own balances |
 | One member, one vote | | Upgrades and founding control are decided by members | Next: members vote on the service's code. JAM itself sits outside that vote |
 | Gaps stay gaps | Someone thin in the record renders as a gap, never a guess | | |
 
