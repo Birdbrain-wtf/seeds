@@ -6,7 +6,7 @@
   "root": "0xcc04a401c1900bc950f297d83025a930fb3a6250b5b115d9bddb8007c4d686a0",
   "memberCount": 4,
   "remark": "birdbrain/attendance/v2:CS33:0xcc04a401c1900bc950f297d83025a930fb3a6250b5b115d9bddb8007c4d686a0",
-  "builtAt": "2026-10-05T16:31:36.126Z",
+  "builtAt": "2026-09-23T16:28:53.153Z",
   "excluded": [
     {
       "reason": "a second login by someone who already has a leaf in this roster"
