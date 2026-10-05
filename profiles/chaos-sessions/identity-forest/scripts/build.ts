@@ -19,7 +19,7 @@
  * INPUT  — vault/seeds/*.md (frontmatter: slug, display_name, confidence,
  *          action_item_count, sessions_attended[], sessions_mentioned_in[];
  *          body: "## Topic profile" lines `- \`topic\` (N sessions)`).
- * OUTPUT — identity-forest/out/
+ * OUTPUT — profiles/chaos-sessions/identity-forest/out/
  *            forest.json          — nodes (+ derived genome) and co-attendance edges
  *            organisms/<slug>.svg — one luminous seedling per Seed (transparent bg)
  *            forest.svg           — the full night-forest poster (self-contained)

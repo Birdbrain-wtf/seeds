@@ -1,0 +1,306 @@
+\documentclass[11pt,a4paper]{article}
+
+\usepackage[british]{babel}
+\usepackage{microtype}
+\usepackage[a4paper,margin=28mm]{geometry}
+\usepackage{setspace}
+\usepackage{amsmath,amssymb}
+\usepackage{enumitem}
+\usepackage{xcolor}
+\usepackage{seeds-academic}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,positioning,calc}
+\usepackage{fancyhdr}
+\usepackage{caption}
+\usepackage[hyphens]{url}
+\usepackage[colorlinks=true,linkcolor=linkcol,citecolor=linkcol,urlcolor=linkcol,pdfauthor={Birdbrain},pdftitle={Seeds: A Store of Values},pdfsubject={White paper},pdfkeywords={Seeds, identity, membership, attribution}]{hyperref}
+\usepackage[numbers,sort&compress]{natbib}
+
+
+
+\setstretch{1.22}
+\setlength{\parskip}{0.45em}
+\setlist[itemize]{leftmargin=1.4em,itemsep=0.15em,topsep=0.3em}
+\setlist[enumerate]{leftmargin=1.4em,itemsep=0.15em,topsep=0.3em}
+\captionsetup{font=small,labelfont={bf,color=navy},skip=8pt}
+
+
+\pagestyle{fancy}
+\fancyhf{}
+\renewcommand{\headrulewidth}{0.3pt}
+\renewcommand{\footrulewidth}{0pt}
+\fancyhead[L]{\small\color{muted}Seeds: a store of values}
+\fancyhead[R]{\small\color{muted}Birdbrain, 2026}
+\fancyfoot[C]{\small\thepage}
+\fancypagestyle{plain}{%
+  \fancyhf{}
+  \renewcommand{\headrulewidth}{0pt}
+  \fancyfoot[C]{\small\thepage}
+}
+
+\newcommand{\kab}{\textsc{kab}}
+
+\tikzset{
+  box/.style={draw=navy,line width=0.6pt,fill=boxfill,rounded corners=2pt,align=center,font=\small,inner sep=6pt},
+  flow/.style={-{Stealth[length=5pt]},draw=navy,line width=0.6pt},
+  person/.style={circle,draw=navy,line width=0.6pt,fill=boxfill,minimum size=7pt,inner sep=0pt},
+  work/.style={rectangle,draw=navy,line width=0.6pt,fill=white,minimum size=6pt,inner sep=0pt},
+  tie/.style={draw=rule,line width=0.5pt},
+  note/.style={font=\footnotesize,text=muted,align=center},
+  mint/.style={font=\scriptsize\bfseries,text=accent}
+}
+
+\begin{document}
+\thispagestyle{plain}
+
+\begin{center}
+{\displayfont\LARGE\color{ink} Seeds: A Store of Values}\\[5mm]
+{\normalsize Birdbrain}\\[0.5mm]
+{\small\color{muted} \url{https://birdbrain.wtf}}\\[1mm]
+{\small\color{muted} 5 October 2026 \,\textperiodcentered\, Version 3.0}
+\end{center}
+
+\vspace{2mm}
+\begin{quote}
+\small
+\textbf{Abstract.} Online, a person is either an account that an institution issued or a key that they hold. An account can be closed by whoever issued it, and a key proves only that someone holds it. Neither records what a person has done or who will stand behind them. We propose identity that is grown, not issued. A person arrives by signing in to a meeting their group already holds. The sign-ins become a public attendance record, and a person who keeps turning up alongside the same members becomes a member without anyone filling anything in. The people who were there need act only when the record is wrong. What a member contributes is recorded against them, and it stands unless three members challenge it. Joining brings a vote and no units. New units of the network's record are created only when a contribution stands, so what a member holds is what they have added. There is no treasury, no fee and no administrator. Members write for free, change the rules by one member, one vote, and run the machines that keep the record. A test network has run these rules, and every unit of its supply traced to one of them.
+\end{quote}
+
+\section{Introduction}
+\label{sec:intro}
+
+Identity on the internet depends almost entirely on institutions that issue it. A state issues a passport. A platform issues an account. The arrangement works well for what it was built to do. A passport is honoured because several institutions keep matching records of the same person, and that agreement is what a border guard is really checking~\cite{passports}.
+
+Issued identity has three limits. Whoever issued it can withdraw it. It does not travel, so a standing built up in one place is worth nothing in the next. And it records that someone was let in. It does not record what they went on to do.
+
+Bitcoin showed a second way to be someone online, which is to hold a key~\cite{nakamoto2008}. No institution issued it and none can close it. But a key proves only that someone holds it. It cannot tell its rightful holder from someone who copied it. One person can hold a thousand keys, and software can hold a key as easily as a person can.
+
+So neither an account nor a key says who a person is to the people they work with. For a long time that gap was tolerable, because a person was usually behind each one. That can no longer be assumed. AI agents, software that carries out a task on its own once it has been instructed, now open accounts, hold keys and produce writing, images and code that pass for a person's. An agent may be acting for someone, but nothing in an account or a key says for whom. More and more of what is made and published online has no source that anyone can check.
+
+What is needed is identity based on witnessed participation instead of issuance, so that a contribution can be traced to a person without any institution's permission. This paper describes a network that does this. Membership comes from turning up, in front of members who could say otherwise. Contributions are recorded against the member who made them. The network depends on members being unwilling to put their standing behind someone they have not met, and it limits the damage when some of them are willing.
+
+\section{Grown, not issued}
+\label{sec:grown}
+
+A person's key on the network is called their \emph{Seed}. It is made by the passkey already on their phone or laptop, and their face, fingerprint or PIN unlocks it. No server holds a copy.
+
+A Seed on its own is only a key. It proves that someone controls a device. It becomes an identity as other members add to it: the members who were present when its holder joined, the contributions the holder put forward, and which of those stood.
+
+That gives every act on the network a trail (Figure~\ref{fig:trail}). A contribution traces to the member who put it forward. That member traces to the sessions where they were admitted, and to the members who were present at them. Each witness was witnessed in turn, back to the founders. Nobody issued any link in the trail, and nobody can withdraw one.
+
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}[node distance=9mm]
+  \node[box] (c) {A contribution\\{\footnotesize\color{muted}its fingerprint}};
+  \node[box,right=of c] (m) {The member who\\put it forward};
+  \node[box,right=of m] (w) {The members who\\were there with them};
+  \node[box,right=of w] (s) {The session\\they attended};
+  \draw[flow] (c) -- (m);
+  \draw[flow] (m) -- (w);
+  \draw[flow] (w) -- (s);
+  \draw[flow,dashed] (w.south) to[out=-90,in=-90,looseness=0.7] node[below,note,pos=0.5] {each witness was witnessed in turn, back to the founders} (m.south);
+\end{tikzpicture}
+\caption{The trail from an act back to a person.}
+\label{fig:trail}
+\end{figure}
+
+The design keeps three facts apart that most systems merge.
+
+\begin{itemize}
+  \item \textbf{A key is not a person.} Holding a key shows control of a device. Only being seen by members, again and again, makes its holder a member.
+  \item \textbf{A person is not a balance.} A member may hold no units at all, and units can be held by someone who is not a member.
+  \item \textbf{A balance is not a vote.} Units buy no say over the rules and no place among the machines that keep the record.
+\end{itemize}
+
+\section{Joining}
+\label{sec:joining}
+
+A group already has a way of meeting, whether a weekly call, a rehearsal or an editorial meeting. The network adds no ceremony to it. Its rules follow what the group already does and keep a record of it.
+
+We call one such meeting a \emph{session}. People enter a session by signing in with their key, in place of a link or a password. For a newcomer that is the whole of it. The sign-ins make an attendance record without anyone keeping one. The record is reduced to a fingerprint, a short code that changes if the record changes, and anyone can check from it that a key was present.
+
+Two standings follow, and they are kept apart. Attending makes a person a \emph{participant}: they are on the record, at no cost, with no vote. Membership is derived from consistency. Presence is not membership, because software can sign in too. What the record cannot show by itself is that a key belongs to a person. A group already settles that whenever people meet more than once. Someone who comes back, and is seen by the same people again, is hard to fake for long. Membership carries a vote, so it waits for that.
+
+So the rule is computed from the records. A newcomer becomes a member once they have signed in to two sessions with at least two of the same members present at both. Those members are recorded as the newcomer's \emph{witnesses}. Nobody fills in a form or casts a vote to make it happen.
+
+The judgement stays with the people in the room, and it is used by exception. Each session's record is posted to the network and stands unless members who were present challenge it, by the same rule as any contribution. A name that is not a person anyone met, or a second key for someone already counted, is what they challenge. Silence is the ordinary case, and the record stands.
+
+Each record is fixed before anything is counted against it. The list of sign-ins behind it is published, so anyone can rebuild the fingerprint and dispute it.
+
+The network cannot inspect a body, so it cannot know whether two keys belong to one person. Three limits make that lie slow and costly.
+
+\begin{itemize}
+  \item A member's presence can count towards at most three admissions in a period.
+  \item A community admits at most ten people in a period.
+  \item If a member is later expelled, both of their witnesses take a strike. A member with two strikes can no longer witness or put anything forward.
+\end{itemize}
+
+A false member can still be made. It costs the time of whoever has to attend twice, and the standing of the real members who were present and said nothing, and there is a ceiling on how many can be made in a period. A check that a person is unique, by iris scan or otherwise~\cite{worldcoin2023}, could be required as well. It answers a different question. It says that a body is one. It does not say what that person has done.
+
+Only members can write to the network. A transaction signed by any other key is refused before it is queued. This is what protects the network from spam, so there are no fees and members write for free.
+
+The network holds many communities. Each admits its own members under its own ceiling. A new community counts members from elsewhere as witnesses until it has two of its own, and after that only its own members count.
+
+\section{Contributing}
+\label{sec:contributing}
+
+A contribution is a fingerprint of something a member made or found: a document, a result, a decision. The content stays wherever it is kept. The network holds the fingerprint, the member's name against it, and a clock.
+
+Once a contribution is put forward, other members have a fixed window in which to challenge it. If three different members challenge, it \emph{falls}. It stays on the record as fallen against the member's name and counts as a strike, the same mark a witness takes when someone they vouched for is expelled. Nothing is staked, so the cost of a contribution the room rejects is standing, not units. If the window closes with fewer than three, it \emph{stands}, and new units are created for the member (Figure~\ref{fig:point}).
+
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}
+  \draw[draw=navy,line width=0.8pt] (0,0) -- (8.4,0);
+  \fill[navy] (0,0) circle (2pt);
+  \fill[navy] (8.4,0) circle (2pt);
+  \node[note,below=3pt] at (0,0) {put forward};
+  \node[note,below=3pt] at (4.2,0) {challenge window};
+  \node[box,right=6mm] (ok) at (8.4,0) {Stands\\{\footnotesize new units created}};
+  \node[box] (no) at (4.2,1.5) {Three members challenge\\{\footnotesize it falls, and stays on the record}};
+  \draw[flow] (8.4,0) -- (ok.west);
+  \draw[flow] (4.2,0) -- (no.south);
+\end{tikzpicture}
+\caption{The life of a contribution.}
+\label{fig:point}
+\end{figure}
+
+A contribution that stands has not been proved true or useful. It means that members who could have objected did not, in enough number, in time. The network records that judgement and makes no other.
+
+\section{A store of values}
+\label{sec:values}
+
+A unit of money is worth something because people agree that it is. That agreement is not in the unit. It begins as a story two people share: one offers the unit, the other accepts it, and both expect a third to do the same. In May 2010 one person offered 10,000 bitcoins for two pizzas and another accepted, in what is usually counted as the first purchase made with them~\cite{pizza}. The ledger recorded a balance moving. The value was made between the two of them, and then among everyone who heard the story.
+
+The order runs one way. People deal with each other first. What they come to share, the stories they tell and their judgements of what is worth standing behind, is their culture. Value in money comes after, when that shared meaning settles on something that can be counted.
+
+A store of value holds only the last step. Bitcoin's ledger records one unit and who holds it. New units go to the machines that secure the ledger, and every other amount is measured against the unit. What the ledger leaves out is the people whose agreement makes the unit worth holding.
+
+Seeds records the steps before it. It holds who a group let in, what the group stood behind and what it turned down. It is a store of \emph{values}. We mean nothing loftier by the word than this: the judgements a group made, recorded as the acts of witnessing, challenging and voting.
+
+Its unit follows from that. New units are created at one event only: when a contribution stands. The amount is the same for every contribution, and members set it by vote. Joining creates none. A new member arrives with a vote and an empty balance, and what they hold afterwards is what they have added.
+
+So the unit counts taking part over time and not turning up once. It also leaves a false member with nothing to carry away. The supply at any moment is that amount for each contribution that stood, plus the balances carried over from an earlier network (Section~\ref{sec:earlier}). Anyone can read the record and redo the sum.
+
+Contributions do not stay separate for long. One answers another, extends it or depends on it. Drawn out, the record becomes a map: each contribution a point, each link from one contribution to an earlier one a line between them. Over time the map shows which ideas a group kept returning to and building on. It is drawn by the group's own acts. It is the closest thing a network can hold to what the group found meaningful, and it is useful to more than the people who drew it, because where insight has come from before is the best guide to where it will come from next. So a contribution that stands should credit what it stood on. As an opening example we propose that nine tenths of each new amount go to the member whose contribution stood, and one tenth follow the links to the earlier contributions it builds on. Members can change that split by vote. The test network records each contribution on its own, so recording what builds on what is the next part of the design (Section~\ref{sec:limits}).
+
+That gives every unit an address. A new unit is created at a particular place on the map, the contribution that stood or a line it builds on, and it stays tied to that place: we call it a \emph{coordinate}. A balance is a set of coordinates, a record of where on the group's map a member's work sits.
+
+The two kinds of store differ in where new units appear (Figure~\ref{fig:edge}). In a store of value they are issued for securing the ledger. Every unit is the same as every other, and every amount is measured against that one unit, so everything is drawn towards it at the centre. In Seeds a unit appears only where a contribution stood, at its coordinate, with the member who made it. Its meaning is its place on the map, not its likeness to every other unit. Nothing collects in the middle: there is no fee, no treasury and no payment to the machines. This removes a privileged centre. It does not promise that none can form. If a later addition let some other asset stand behind the machines, that asset would become the centre~\cite{anotherway}.
+
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}
+  % left: a store of value
+  \begin{scope}
+    \node[circle,draw=navy,line width=0.8pt,fill=navy,minimum size=11pt,inner sep=0pt] (hub) at (0,0) {};
+    \foreach \a in {0,45,...,315} {
+      \node[person] (p\a) at (\a:1.7) {};
+      \draw[flow] (p\a) -- (hub);
+    }
+    \node[note] at (0,-2.5) {\textbf{A store of value}\\new units are issued for securing the ledger,\\and everything is measured against the unit};
+  \end{scope}
+  % right: a store of values
+  \begin{scope}[xshift=7.6cm]
+    \node[person] (a) at (90:1.7) {};
+    \node[person] (b) at (162:1.7) {};
+    \node[person] (c) at (234:1.7) {};
+    \node[person] (d) at (306:1.7) {};
+    \node[person] (e) at (18:1.7) {};
+    \node[work] (x) at (126:0.8) {};
+    \node[work] (y) at (342:0.95) {};
+    \node[work] (z) at (234:0.85) {};
+    \draw[tie] (a) -- (b) -- (c) -- (d) -- (e) -- (a);
+    \draw[tie] (a) -- (x) (b) -- (x);
+    \draw[tie] (e) -- (y) (d) -- (y);
+    \draw[tie] (c) -- (z);
+    \node[mint,right=1pt] at (x.east) {new};
+    \node[mint,left=1pt] at (y.west) {new};
+    \node[mint,right=1pt] at (z.east) {new};
+    \node[note] at (0,-2.5) {\textbf{A store of values}\\new units appear only at a contribution\\that stood (square), never at a person (circle)};
+  \end{scope}
+\end{tikzpicture}
+\caption{Where new units appear.}
+\label{fig:edge}
+\end{figure}
+
+The unit is a record of participation. The protocol does not name it, and each network that runs these rules gives it a name of its own. It shows whose contributions stood. Whether a group's record ever comes to be worth anything in money is for the people who share it, and this paper makes no claim that it will. It carries no return, no dividend and no share of anyone's revenue, and nothing in this paper is an offer of it.
+
+Units do not pass from one member to another. The unit is a record of what a member added, not something that changes hands.
+
+\section{How a network starts}
+\label{sec:start}
+
+A record of contributions is empty until a group makes things on it. The rules above do nothing until people meet, put work forward and judge each other's.
+
+Bitcoin started its ledger by paying the machines that kept it, in new units that cost little to earn at the start and were expected to be worth more later. The subsidy was in effect an advance, paid in a unit whose worth rested on belief, and that belief is what drew everyone towards the unit. The unit became the centre because the way the network started put it there.
+
+Seeds is built to have no such centre. A unit is a coordinate: it marks a place on a group's map where a contribution stood, and it means what that place means to the group. It does not pay the machines and it does not count votes. If the network started by promising that early units would be worth more later, the unit would come loose from its place. People would come for the units rather than the work, a unit would be valued for its likeness to every other unit, and holding units would become the reason to take part. That would rebuild in the first year the single centre the rules are written to prevent. So the start has to come from somewhere other than the unit.
+
+It starts from a group that already meets. People turn up to a regular session because the conversation is worth having, and nobody is paid to attend. Running the rules is part of belonging to that group. The session already produces its sign-ins, its members already know who they met, and its contributions already build on one another. The network records what the group was doing anyway and asks for nothing new. If a meeting is not worth attending without the record, the record will not save it.
+
+Anyone may also fund a group from outside, and the rules allow for that without depending on it. Whatever passes between a funder and a group is money and a contract, kept off the network. It creates no units, carries no vote and gives the funder no place in line, so a funder cannot become the centre that Figure~\ref{fig:edge} rules out. A funder may set its own terms with the groups it backs. Those terms sit above the rules and never inside them.
+
+\section{Rules and machines}
+\label{sec:rules}
+
+Any change to the network's software or settings is a motion that members vote on, one member, one vote. A motion passes with more than half of members in favour and fewer than a third against. The list of who may vote is fixed when the motion opens, so nobody can be admitted in order to swing it. No key can bypass a vote, because there is no administrator.
+
+The founders start the network, and for a founding period a founder's upgrade passes unless a third of members object. Members can end that period by a simple majority. They can do it once, and it cannot be restarted.
+
+The machines that keep the record belong to members. Any member can run the software. Those who do are placed in line, longest-standing first, and each period the first twenty-one produce the blocks and confirm them. Proof-of-work is one CPU, one vote~\cite{nakamoto2008}. Here it is one member, one machine in line. Nobody buys a place, and nobody is paid for holding one. Members whose machines are not among the twenty-one still write, vote and witness.
+
+Twenty-one is a setting we chose. Some limit is needed, because each machine has to hear from every other before a block is confirmed. A network kept this way is strong enough to hold a record of members and contributions. It is not strong enough, on its own, to hold large sums of money.
+
+\section{Earlier holders}
+\label{sec:earlier}
+
+A network may start from balances held on an earlier ledger, and carry them across by claim. A holder signs with their old key to name the new key that should receive the balance. Nothing moves without that signature. A claim creates no new units, and a holder does not have to become a member to make one. It is the only thing a non-member can write.
+
+Carried balances carry no vote and no place in line.
+
+\section{What has been run}
+\label{sec:run}
+
+The rules above have run on a test network of three nodes on one machine, holding nothing of value. Its periods are short so a whole cycle can be watched: ten minutes for a period and five for a challenge window. It creates 10 units when a contribution stands and nothing else. In one sitting of 120 blocks:
+
+\begin{itemize}
+  \item a key that was not a member was refused before its transaction was queued
+  \item one witness admitted nobody, and two witnesses naming different sessions admitted nobody
+  \item two witnesses naming the same session admitted a fourth member, who arrived with a vote and no units
+  \item an old key claimed 1,000 units to that member, without the member signing anything, and a claim signed for a different network was refused
+  \item a contribution that three members challenged created nothing and left a strike against the member who put it forward
+  \item an upgrade was voted in and applied while the network kept running, with no administrator
+  \item members voted the founding period away, three of four
+  \item a contribution stood after one challenge, and 10 units were created for the member who made it
+  \item the new member's machine joined the line at the next period and blocks kept being confirmed
+\end{itemize}
+
+At the end the supply was exactly 1,010 units: one contribution at 10 and the claim of 1,000. Every unit traced to a rule, and that holds whatever the amount is set to. All twenty-eight checks ran unattended. The companion paper lists them~\cite{seedstech}, and the code is public~\cite{seedscode}.
+
+\section{Limits}
+\label{sec:limits}
+
+\begin{itemize}
+  \item \textbf{Two keys, one person.} Witnessing makes a false member slow and costly. It does not make one impossible. The ceiling on admissions is the real brake, and the companion paper works through what a group acting together could do against it.
+  \item \textbf{Computed admission.} On the test network a witness is still a step two members take by hand, and the network checks only that both name the same session. Admission computed from attendance records, with a challenge window on each record, is designed and not built. The companion paper sets it out.
+  \item \textbf{Silence as a vouch.} Under the computed rule, a member who was present and did not challenge is counted as a witness and takes the strike if the newcomer is later expelled. Whether that is fair to people in a large room, and whether they will check the record at all, has not been tested.
+  \item \textbf{Agents acting for a member.} A member can let an agent sign with their key, and every act is then the member's. There is no way yet for a member to authorise an agent to act for them within limits, so the record cannot tell a member from an agent holding the member's key.
+  \item \textbf{Flooding.} A member may have only three contributions waiting at once, but with no fees nothing else stops a member filling blocks with other writes except expulsion. A general limit for each member is not built.
+  \item \textbf{Seniority.} The twenty-second member with a machine waits. Taking turns is not designed.
+  \item \textbf{Recovery.} A member who loses every device has no way back yet.
+  \item \textbf{What builds on what.} The test network records each contribution on its own. Recording that one builds on another is designed in outline only, and the nine-tenths and one-tenth split is an opening example, not a settled rule.
+  \item \textbf{Settings.} Periods of a day and windows of weeks suit a real network better than minutes. Those lengths, and the amount created when a contribution stands, are for members to decide.
+\end{itemize}
+
+\section{Conclusion}
+\label{sec:conclusion}
+
+We have described identity that needs no issuer. A key becomes a member when its holder keeps turning up in front of the same members, and the record of it stands unchallenged. A member's contributions are recorded against them and stand unless three members object. Joining creates no units. New units exist only when a contribution stands, so the whole supply can be traced to what members made. Members hold the vote, one each, and their machines keep the record. No account anywhere in the system can admit a person, create a unit or change a rule on its own authority.
+
+The network does not decide who is a person or what is true. It records what members were willing to stand behind and who stood behind it, and it keeps that record where anyone can check it.
+
+\bibliographystyle{unsrtnat}
+{\small\bibliography{seeds}}
+
+\end{document}

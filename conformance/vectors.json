@@ -1,0 +1,43 @@
+{
+  "suite": "seeds-conformance",
+  "version": 1,
+  "protocol": "seeds v2",
+  "note": "Each vector is one rule, stated so that any engine can be held to it. scope 'protocol' binds every implementation; scope 'reference' binds only the FRAME reference runtime in chain/, because it names that runtime's pallets or consensus. 'frame' is the line the reference end-to-end run prints for this vector; 'jambo' records whether the JAM services check it yet.",
+  "vectors": [
+    { "id": "S01", "scope": "reference", "group": "shape", "rule": "The runtime carries the protocol and nothing else.", "expect": "Pallets are exactly System, Timestamp, Aura, Grandpa, Seeds.", "frame": "runtime is five pallets and nothing else", "jambo": "n/a" },
+    { "id": "S02", "scope": "protocol", "group": "shape", "rule": "A network starts from a named set of founders.", "expect": "Member count at genesis equals the founders in the genesis config (3 in the test genesis).", "frame": "genesis: three founders", "jambo": "not yet" },
+    { "id": "S03", "scope": "protocol", "group": "shape", "rule": "Joining mints nothing.", "expect": "Every founder's balance at genesis is 0.", "frame": "founders hold nothing: joining mints no units", "jambo": "not yet" },
+    { "id": "S04", "scope": "protocol", "group": "shape", "rule": "Units are a record, not a currency.", "expect": "There is no call that moves units between members.", "frame": "there is no transfer call: units are a record, not a currency", "jambo": "not yet" },
+    { "id": "S05", "scope": "protocol", "group": "shape", "rule": "Founding control exists at genesis and can be ended.", "expect": "Founding control is active at genesis.", "frame": "founding control is on", "jambo": "not yet" },
+    { "id": "S06", "scope": "reference", "group": "shape", "rule": "Validators at genesis are the ones the genesis config names.", "expect": "Aura authorities at genesis = 2 in the test genesis.", "frame": "two validators at genesis", "jambo": "n/a" },
+
+    { "id": "G01", "scope": "protocol", "group": "gate", "rule": "Only members write.", "expect": "Any signed call from a non-member is refused before it reaches the pool.", "frame": "a non-member cannot write, refused before the pool", "jambo": "not yet" },
+
+    { "id": "A01", "scope": "protocol", "group": "admission", "rule": "One witness is not enough.", "expect": "After one member witnesses a candidate, the candidate is still not a member.", "frame": "one witness is not enough", "jambo": "not yet" },
+    { "id": "A02", "scope": "protocol", "group": "admission", "rule": "Witnesses must name the same evidence.", "expect": "A second witness naming different session evidence is refused (CandidacyMismatch).", "frame": "witnesses must agree on the evidence", "jambo": "not yet" },
+    { "id": "A03", "scope": "protocol", "group": "admission", "rule": "Two witnesses on the same evidence admit, and admission mints nothing.", "expect": "Admitted is emitted; Minted is not.", "frame": "second witness admits Dave, and nothing is minted", "jambo": "partial: the member register writes a member; witness signatures are next" },
+    { "id": "A04", "scope": "protocol", "group": "admission", "rule": "A new member arrives with a vote and an empty balance.", "expect": "The new member's balance is 0.", "frame": "Dave arrives with a vote and an empty balance", "jambo": "not yet" },
+    { "id": "A05", "scope": "protocol", "group": "admission", "rule": "Members write without fees.", "expect": "A signed call from the new member succeeds with no balance.", "frame": "Dave can now write, feelessly", "jambo": "not yet" },
+
+    { "id": "C01", "scope": "protocol", "group": "claim", "rule": "A claim is bound to one network.", "expect": "A claim signed over another network's genesis hash is refused.", "frame": "a claim signed for another network is refused", "jambo": "not yet" },
+    { "id": "C02", "scope": "protocol", "group": "claim", "rule": "A claim is bound to one destination.", "expect": "A claim signed for a different destination is refused.", "frame": "a claim signed for someone else is refused", "jambo": "not yet" },
+    { "id": "C03", "scope": "protocol", "group": "claim", "rule": "The old key alone moves a snapshot balance to its new holder.", "expect": "A valid claim signed 'seeds-claim:' ++ genesis_hash ++ dest credits dest with the snapshot amount, with no signature from dest.", "frame": "Ferdie's old key moves the snapshot to Dave, unsigned by Dave", "jambo": "not yet" },
+    { "id": "C04", "scope": "protocol", "group": "claim", "rule": "A snapshot entry is claimed once.", "expect": "Unclaimed total falls to 0 after the only entry is claimed.", "frame": "nothing left unclaimed", "jambo": "not yet" },
+
+    { "id": "P01", "scope": "protocol", "group": "points", "rule": "Any member may queue for a seat by registering keys.", "expect": "Key holders grow by one.", "frame": "Dave queues for a seat", "jambo": "n/a" },
+    { "id": "P02", "scope": "protocol", "group": "points", "rule": "A point needs no bond, and fewer than three challenges leave it pending.", "expect": "After one challenge the point is still Pending with a maturity block set.", "frame": "a point with no bond, matures at", "jambo": "not yet" },
+    { "id": "P03", "scope": "protocol", "group": "points", "rule": "Three challenges fail a point: nothing is minted and the proposer takes a strike.", "expect": "Failed is emitted; proposer strikes = 1.", "frame": "three challenges fail a point: nothing minted, a strike on the proposer", "jambo": "not yet" },
+
+    { "id": "U01", "scope": "protocol", "group": "governance", "rule": "A founder's upgrade passes unless members object.", "expect": "With no objection, closing the motion authorises the code hash.", "frame": "a founder's upgrade with no objection is authorised", "jambo": "not yet" },
+    { "id": "U02", "scope": "protocol", "group": "governance", "rule": "Authorised code is applied by any member, without a superuser.", "expect": "spec_version rises by one; no sudo exists.", "frame": "any member applies the authorised code: forkless upgrade, no sudo", "jambo": "not yet" },
+    { "id": "U03", "scope": "protocol", "group": "governance", "rule": "Members end founding control by simple majority, once.", "expect": "With 3 of 4 in favour, FoundingEnded is emitted and founding control is off.", "frame": "members vote founding control away, 3 of 4", "jambo": "not yet" },
+
+    { "id": "M01", "scope": "protocol", "group": "issuance", "rule": "An unchallenged point matures at its block.", "expect": "Status is Matured after the maturity block.", "frame": "the point matured", "jambo": "not yet" },
+    { "id": "M02", "scope": "protocol", "group": "issuance", "rule": "Maturity is the only place units are created.", "expect": "The proposer's balance rises by exactly the maturity amount (10 units in the test genesis).", "frame": "the maturity mint, the only one", "jambo": "not yet" },
+    { "id": "M03", "scope": "protocol", "group": "issuance", "rule": "Issuance is the sum of maturities plus the claimed snapshot.", "expect": "Total issuance = 10 + 1000 units in the test run.", "frame": "issuance = one maturity + the snapshot, nothing else", "jambo": "not yet" },
+
+    { "id": "V01", "scope": "reference", "group": "seats", "rule": "At an era boundary, queued members' keys join block production.", "expect": "Aura authorities = 3.", "frame": "at the era, Dave's keys join Aura", "jambo": "n/a" },
+    { "id": "V02", "scope": "protocol", "group": "seats", "rule": "The protocol records who holds a seat.", "expect": "Seeds validators = 3.", "frame": "Seeds records three seats", "jambo": "n/a" },
+    { "id": "V03", "scope": "reference", "group": "seats", "rule": "Finality continues across a set change.", "expect": "GRANDPA finalises more than five blocks past the era boundary.", "frame": "GRANDPA finalises past the set change with three voters", "jambo": "n/a" }
+  ]
+}

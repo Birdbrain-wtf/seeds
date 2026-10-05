@@ -1,0 +1,31 @@
+\NeedsTeXFormat{LaTeX2e}
+\ProvidesPackage{seeds-academic}[2026/10/05 The house look for the Seeds papers]
+% The regular academic paper: Latin Modern, navy headings, ruled sections, white page.
+\RequirePackage[T1]{fontenc}
+\RequirePackage{lmodern}
+\RequirePackage{xcolor}
+\RequirePackage{tikz}
+\RequirePackage{titlesec}
+\definecolor{navy}{HTML}{1B365D}
+\definecolor{ink}{HTML}{111111}
+\definecolor{rule}{HTML}{B9BCC4}
+\definecolor{muted}{HTML}{55595F}
+\definecolor{boxfill}{HTML}{FFFFFF}
+\definecolor{accent}{HTML}{8B1E3F}
+\colorlet{linkcol}{navy}
+\colorlet{graphite}{navy}
+\colorlet{ghost}{rule}
+\definecolor{specA}{HTML}{EF4444}
+\definecolor{specB}{HTML}{F97316}
+\definecolor{specC}{HTML}{F59E0B}
+\definecolor{specD}{HTML}{10B981}
+\definecolor{specE}{HTML}{06B6D4}
+\definecolor{specF}{HTML}{3B82F6}
+\definecolor{specG}{HTML}{8B5CF6}
+\newcommand{\displayfont}{\bfseries}
+\pagecolor{white}
+\color{ink}
+\titleformat{\section}{\large\bfseries\color{navy}}{\thesection}{0.8em}{}[\vspace{-0.4em}{\color{rule}\titlerule[0.4pt]}]
+\titleformat{\subsection}{\normalsize\bfseries\color{navy}}{\thesubsection}{0.7em}{}
+\titleformat{\subsubsection}{\normalsize\bfseries\color{navy}}{\thesubsubsection}{0.7em}{}
+\endinput

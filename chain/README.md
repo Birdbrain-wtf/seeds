@@ -28,9 +28,10 @@ There is no transfer. Units are a record of what held up, not a currency.
 
 | Here | Elsewhere |
 | --- | --- |
-| The evidence a witness names when admitting someone | An attendance root over a session, which [`seed-builder/`](../seed-builder) derives from what happened |
+| The evidence a witness names when admitting someone | An attendance root over a session, built and checked by [`presence/`](../presence) |
 | The member's key | Derived on their own device from a passkey, never held by an operator. See [`TRUST.md`](../TRUST.md) |
-| Points put forward and matured | The shared concepts and typed edges the seed builder writes. Nothing joins the two yet. The plan is for a point to be the digest of one, so the graph and the chain can be checked against each other |
+| Points put forward and matured | The shared concepts and typed edges the Chaos Sessions seed builder writes ([`profiles/chaos-sessions/`](../profiles/chaos-sessions)). Nothing joins the two yet. The plan is for a point to be the digest of one, so the graph and the chain can be checked against each other |
+| What any engine must do | [`conformance/`](../conformance): the rules as vectors. This chain passes all 28 |
 | The same rules on a different engine | [Jambo](https://github.com/Birdbrain-wtf/jambo), a reduced JAM client. Its first service is a member register, the first slice of the admission step here, and the other jobs are meant to follow one at a time |
 
 ## Build and run
