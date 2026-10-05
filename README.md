@@ -12,6 +12,8 @@ sessions, bound (by its owner, not by us) to a self-custody key.
 **Live demo:** https://birdbrain.wtf/seeds/forest — the Identity Forest, a
 deterministic render of a real community's Seeds in 1D / 2D / 3D / 4D.
 
+**Papers:** [Seeds: A Store of Values](https://github.com/Birdbrain-wtf/publications/tree/main/content/articles/seeds-a-store-of-values), the white paper, and [Seeds: A Chain with One Job](https://github.com/Birdbrain-wtf/publications/tree/main/content/articles/seeds-a-chain-with-one-job), the specification of the chain in [`chain/`](chain).
+
 ## The thesis
 
 - **Personhood is relational.** You are evidenced by the web of people who have
