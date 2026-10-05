@@ -1,9 +1,8 @@
 //! Genesis presets. The founding set are members of community 0 with keys, so
-//! they both validate and can witness the first admissions. No endowments: KAB
-//! at genesis is only the founders' admission mint plus any snapshot waiting to
-//! be claimed.
+//! they both validate and can witness the first admissions. No endowments and no
+//! admission mint: the only units at genesis are a snapshot waiting to be claimed.
 
-use crate::{AccountId, RuntimeGenesisConfig, SeedKeys, SeedsConfig, KAB};
+use crate::{AccountId, RuntimeGenesisConfig, SeedKeys, SeedsConfig, UNIT};
 use alloc::{vec, vec::Vec};
 use frame_support::build_struct_json_patch;
 use serde_json::Value;
@@ -30,7 +29,7 @@ fn genesis(founders: Vec<(AccountId, Option<SeedKeys>)>, claims: Vec<([u8; 32], 
 /// Ferdie stands in for a holder of the old chain, so the claim path can be
 /// exercised on a dev chain. Ferdie is not a founder.
 fn demo_claims() -> Vec<([u8; 32], u128)> {
-	vec![(Sr25519Keyring::Ferdie.public().0, 1_000 * KAB)]
+	vec![(Sr25519Keyring::Ferdie.public().0, 1_000 * UNIT)]
 }
 
 pub fn development_config_genesis() -> Value {

@@ -19,7 +19,7 @@ use sp_version::RuntimeVersion;
 
 use super::{
 	AccountId, Aura, Balance, Block, BlockNumber, Grandpa, Hash, Nonce, PalletInfo, Runtime,
-	RuntimeCall, RuntimeEvent, RuntimeOrigin, RuntimeTask, SeedKeys, KAB, MINUTES, HOURS,
+	RuntimeCall, RuntimeEvent, RuntimeOrigin, RuntimeTask, SeedKeys, UNIT, MINUTES, HOURS,
 	SLOT_DURATION, VERSION,
 };
 
@@ -55,7 +55,7 @@ impl frame_system::Config for Runtime {
 	type BlockHashCount = BlockHashCount;
 	type DbWeight = RocksDbWeight;
 	type Version = Version;
-	/// No balances pallet: an account holds nothing but its nonce here. KAB lives in `Seeds`.
+	/// No balances pallet: an account holds nothing but its nonce here. Units live in `Seeds`.
 	type AccountData = ();
 	type SS58Prefix = SS58Prefix;
 	type MaxConsumers = frame_support::traits::ConstU32<16>;
@@ -114,9 +114,8 @@ parameter_types! {
 	pub const WitnessAllowance: u32 = 3;
 	pub const CandidacyTimeout: u32 = HOURS;
 	pub const MaxStrikes: u32 = 2;
-	pub const AdmissionMint: Balance = 100 * KAB;
-	pub const MaturityMint: Balance = 10 * KAB;
-	pub const MinBond: Balance = KAB;
+	pub const MaturityMint: Balance = 10 * UNIT;
+	pub const MaxPendingPoints: u32 = 3;
 	pub const MaturityPeriod: u32 = 5 * MINUTES;
 	pub const ChallengeThreshold: u32 = 3;
 	pub const MaxMaturingPerBlock: u32 = 16;
@@ -135,9 +134,8 @@ impl pallet_seeds::Config for Runtime {
 	type WitnessAllowance = WitnessAllowance;
 	type CandidacyTimeout = CandidacyTimeout;
 	type MaxStrikes = MaxStrikes;
-	type AdmissionMint = AdmissionMint;
 	type MaturityMint = MaturityMint;
-	type MinBond = MinBond;
+	type MaxPendingPoints = MaxPendingPoints;
 	type MaturityPeriod = MaturityPeriod;
 	type ChallengeThreshold = ChallengeThreshold;
 	type MaxMaturingPerBlock = MaxMaturingPerBlock;

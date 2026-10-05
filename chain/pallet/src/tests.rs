@@ -48,9 +48,8 @@ parameter_types! {
 	pub const WitnessAllowance: u32 = 2;
 	pub const CandidacyTimeout: u32 = 5;
 	pub const MaxStrikes: u32 = 2;
-	pub const AdmissionMint: u128 = 100;
 	pub const MaturityMint: u128 = 50;
-	pub const MinBond: u128 = 10;
+	pub const MaxPendingPoints: u32 = 2;
 	pub const MaturityPeriod: u32 = 5;
 	pub const ChallengeThreshold: u32 = 2;
 	pub const MaxMaturingPerBlock: u32 = 2;
@@ -69,9 +68,8 @@ impl pallet_seeds::Config for Test {
 	type WitnessAllowance = WitnessAllowance;
 	type CandidacyTimeout = CandidacyTimeout;
 	type MaxStrikes = MaxStrikes;
-	type AdmissionMint = AdmissionMint;
 	type MaturityMint = MaturityMint;
-	type MinBond = MinBond;
+	type MaxPendingPoints = MaxPendingPoints;
 	type MaturityPeriod = MaturityPeriod;
 	type ChallengeThreshold = ChallengeThreshold;
 	type MaxMaturingPerBlock = MaxMaturingPerBlock;
@@ -153,8 +151,9 @@ fn genesis_founds_the_network() {
 	new_test_ext().execute_with(|| {
 		assert_eq!(MemberCount::<Test>::get(), 3);
 		assert!(FoundingActive::<Test>::get());
-		assert_eq!(Balances::<Test>::get(A), 100);
-		assert_eq!(TotalIssuance::<Test>::get(), 300 + 5_000);
+		// Founding mints nothing: the only units are the snapshot's.
+		assert_eq!(Balances::<Test>::get(A), 0);
+		assert_eq!(TotalIssuance::<Test>::get(), 5_000);
 		assert_eq!(Unclaimed::<Test>::get(), 5_000);
 		assert_eq!(Validators::<Test>::get().to_vec(), vec![(A, 11), (B, 22)]);
 		assert!(Members::<Test>::get(C).unwrap().founder);
@@ -166,7 +165,7 @@ fn genesis_founds_the_network() {
 // ---------------------------------------------------------------- admission
 
 #[test]
-fn two_witnesses_on_the_same_evidence_admit_and_mint() {
+fn two_witnesses_on_the_same_evidence_admit_and_mint_nothing() {
 	new_test_ext().execute_with(|| {
 		assert_ok!(Seeds::witness(o(A), 10, 0, EV));
 		assert!(!Seeds::is_member(&10));
@@ -179,8 +178,8 @@ fn two_witnesses_on_the_same_evidence_admit_and_mint() {
 		let m = Members::<Test>::get(10).unwrap();
 		assert_eq!((m.index, m.community, m.evidence), (3, 0, EV));
 		assert_eq!(m.witnesses.to_vec(), vec![A, B]);
-		assert_eq!(Balances::<Test>::get(10), 100);
-		assert_eq!(TotalIssuance::<Test>::get(), 400 + 5_000);
+		assert_eq!(Balances::<Test>::get(10), 0);
+		assert_eq!(TotalIssuance::<Test>::get(), 5_000);
 		assert_eq!(System::providers(&10), 1);
 		assert_noop!(Seeds::witness(o(C), 10, 0, EV), Error::<Test>::AlreadyMember);
 	});
@@ -254,48 +253,71 @@ fn a_new_community_is_sponsored_then_witnesses_for_itself() {
 // ------------------------------------------------------------------- points
 
 #[test]
-fn an_unchallenged_point_matures_returns_the_bond_and_mints() {
+fn an_unchallenged_point_matures_and_mints() {
 	new_test_ext().execute_with(|| {
 		let d = H256::repeat_byte(0xd1);
-		assert_noop!(Seeds::propose_point(o(A), d, 9, vec![]), Error::<Test>::BondTooSmall);
-		assert_noop!(Seeds::propose_point(o(A), d, 101, vec![]), Error::<Test>::InsufficientKab);
-		assert_noop!(Seeds::propose_point(o(A), d, 10, vec![0; 9]), Error::<Test>::NoteTooLong);
-		assert_ok!(Seeds::propose_point(o(A), d, 40, b"cs36".to_vec()));
-		assert_eq!(Balances::<Test>::get(A), 60);
-		assert_noop!(Seeds::propose_point(o(B), d, 10, vec![]), Error::<Test>::PointExists);
+		assert_noop!(Seeds::propose_point(o(A), d, vec![0; 9]), Error::<Test>::NoteTooLong);
+		assert_ok!(Seeds::propose_point(o(A), d, b"cs36".to_vec()));
+		assert_eq!(Members::<Test>::get(A).unwrap().pending_points, 1);
+		assert_noop!(Seeds::propose_point(o(B), d, vec![]), Error::<Test>::PointExists);
 		assert_noop!(Seeds::challenge(o(A), d), Error::<Test>::OwnPoint);
 		assert_ok!(Seeds::challenge(o(B), d));
 		assert_noop!(Seeds::challenge(o(B), d), Error::<Test>::AlreadyChallenged);
 		run_to(6);
 		let p = Points::<Test>::get(d).unwrap();
 		assert_eq!(p.status, PointStatus::Matured);
-		assert_eq!(Balances::<Test>::get(A), 100 + 50);
-		assert_eq!(TotalIssuance::<Test>::get(), 300 + 50 + 5_000);
+		assert_eq!(Balances::<Test>::get(A), 50);
+		assert_eq!(TotalIssuance::<Test>::get(), 50 + 5_000);
+		assert_eq!(Members::<Test>::get(A).unwrap().pending_points, 0);
 		assert_noop!(Seeds::challenge(o(C), d), Error::<Test>::NotPending);
 	});
 }
 
 #[test]
-fn enough_challenges_burn_the_bond() {
+fn enough_challenges_fail_a_point_and_strike_its_proposer() {
 	new_test_ext().execute_with(|| {
 		let d = H256::repeat_byte(0xd2);
-		assert_ok!(Seeds::propose_point(o(A), d, 40, vec![]));
+		assert_ok!(Seeds::propose_point(o(A), d, vec![]));
 		assert_ok!(Seeds::challenge(o(B), d));
 		assert_ok!(Seeds::challenge(o(C), d));
-		assert_eq!(Points::<Test>::get(d).unwrap().status, PointStatus::Forfeited);
+		assert_eq!(Points::<Test>::get(d).unwrap().status, PointStatus::Failed);
+		let a = Members::<Test>::get(A).unwrap();
+		assert_eq!((a.strikes, a.pending_points), (1, 0));
 		run_to(6);
-		assert_eq!(Balances::<Test>::get(A), 60);
-		assert_eq!(TotalIssuance::<Test>::get(), 300 - 40 + 5_000);
+		assert_eq!(Balances::<Test>::get(A), 0);
+		assert_eq!(TotalIssuance::<Test>::get(), 5_000);
+	});
+}
+
+#[test]
+fn a_member_holds_a_bounded_number_of_pending_points() {
+	new_test_ext().execute_with(|| {
+		assert_ok!(Seeds::propose_point(o(A), H256::repeat_byte(1), vec![]));
+		run_to(2);
+		assert_ok!(Seeds::propose_point(o(A), H256::repeat_byte(2), vec![]));
+		run_to(3);
+		assert_noop!(
+			Seeds::propose_point(o(A), H256::repeat_byte(3), vec![]),
+			Error::<Test>::TooManyPending
+		);
+	});
+}
+
+#[test]
+fn a_struck_member_cannot_propose() {
+	new_test_ext().execute_with(|| {
+		Members::<Test>::mutate(A, |m| m.as_mut().unwrap().strikes = MaxStrikes::get());
+		assert_noop!(Seeds::propose_point(o(A), H256::repeat_byte(1), vec![]), Error::<Test>::Struck);
 	});
 }
 
 #[test]
 fn a_block_holds_a_bounded_number_of_maturities() {
 	new_test_ext().execute_with(|| {
-		assert_ok!(Seeds::propose_point(o(A), H256::repeat_byte(1), 10, vec![]));
-		assert_ok!(Seeds::propose_point(o(B), H256::repeat_byte(2), 10, vec![]));
+		assert_ok!(Seeds::propose_point(o(A), H256::repeat_byte(1), vec![]));
+		assert_ok!(Seeds::propose_point(o(B), H256::repeat_byte(2), vec![]));
 		assert_noop!(
-			Seeds::propose_point(o(C), H256::repeat_byte(3), 10, vec![]),
+			Seeds::propose_point(o(C), H256::repeat_byte(3), vec![]),
 			Error::<Test>::MaturityFull
 		);
 	});
@@ -387,7 +409,7 @@ fn voting_rules() {
 fn expelling_strikes_the_witnesses_and_forfeits_pending_points() {
 	new_test_ext().execute_with(|| {
 		admit(10, 0, [A, B]);
-		assert_ok!(Seeds::propose_point(o(10), H256::repeat_byte(5), 20, vec![]));
+		assert_ok!(Seeds::propose_point(o(10), H256::repeat_byte(5), vec![]));
 		let id = motion(C, MotionKind::Expel { who: 10 });
 		assert_ok!(Seeds::vote(o(A), id, true));
 		assert_ok!(Seeds::vote(o(B), id, true));
@@ -399,7 +421,8 @@ fn expelling_strikes_the_witnesses_and_forfeits_pending_points() {
 		assert_eq!(Members::<Test>::get(B).unwrap().strikes, 1);
 		assert_eq!(Members::<Test>::get(C).unwrap().strikes, 0);
 		run_to(10);
-		assert_eq!(Points::<Test>::get(H256::repeat_byte(5)).unwrap().status, PointStatus::Forfeited);
+		assert_eq!(Points::<Test>::get(H256::repeat_byte(5)).unwrap().status, PointStatus::Failed);
+		assert_eq!(TotalIssuance::<Test>::get(), 5_000);
 	});
 }
 
@@ -449,13 +472,14 @@ fn a_refused_change_is_retried_next_era() {
 
 // ------------------------------------------------------------------- claims
 
-fn sign_claim(pair: &sr25519::Pair, dest: u64, wrap: bool) -> ClaimSignature {
+fn sign_claim(pair: &sr25519::Pair, dest: u64, wrap: bool) -> OwnershipProof {
 	let mut msg = CLAIM_PREFIX.to_vec();
+	System::block_hash(0).encode_to(&mut msg);
 	dest.encode_to(&mut msg);
 	if wrap {
 		msg = [b"<Bytes>".as_slice(), &msg, b"</Bytes>"].concat();
 	}
-	ClaimSignature::Sr25519(pair.sign(&msg))
+	OwnershipProof::Sr25519(pair.sign(&msg))
 }
 
 #[test]
@@ -476,7 +500,7 @@ fn an_old_holder_claims_with_their_old_key() {
 		assert_eq!(Balances::<Test>::get(10), 5_000);
 		assert_eq!(Unclaimed::<Test>::get(), 0);
 		// Claiming moves the snapshot, it is not a mint.
-		assert_eq!(TotalIssuance::<Test>::get(), 300 + 5_000);
+		assert_eq!(TotalIssuance::<Test>::get(), 5_000);
 		assert_noop!(
 			Seeds::claim(RuntimeOrigin::none(), 10, key, sign_claim(&old, 10, false)),
 			Error::<Test>::NothingToClaim
@@ -504,7 +528,7 @@ fn the_pool_only_takes_valid_claims() {
 			InvalidTransaction::Stale.into()
 		);
 		// Unsigned dispatch of anything else is refused outright.
-		assert!(Call::<Test>::transfer { to: A, amount: 1 }
+		assert!(Call::<Test>::challenge { digest: H256::zero() }
 			.dispatch_bypass_filter(RuntimeOrigin::none())
 			.is_err());
 	});
@@ -532,11 +556,135 @@ fn only_members_may_sign() {
 }
 
 #[test]
-fn kab_moves_only_between_members() {
+fn a_claim_signed_for_another_network_is_refused() {
 	new_test_ext().execute_with(|| {
-		assert_noop!(Seeds::transfer(o(A), 99, 10), Error::<Test>::NotMember);
-		assert_noop!(Seeds::transfer(o(A), B, 101), Error::<Test>::InsufficientKab);
-		assert_ok!(Seeds::transfer(o(A), B, 30));
-		assert_eq!((Balances::<Test>::get(A), Balances::<Test>::get(B)), (70, 130));
+		let old = old_holder();
+		let key = old.public().0;
+		// The same destination, signed without this network's genesis hash.
+		let mut msg = CLAIM_PREFIX.to_vec();
+		H256::repeat_byte(0xab).encode_to(&mut msg);
+		10u64.encode_to(&mut msg);
+		assert_noop!(
+			Seeds::claim(RuntimeOrigin::none(), 10, key, OwnershipProof::Sr25519(old.sign(&msg))),
+			Error::<Test>::BadClaimSignature
+		);
+	});
+}
+
+// ------------------------------------------------------- ownership types
+
+fn claim_msg(dest: u64) -> Vec<u8> {
+	Pallet::<Test>::claim_message(&dest)
+}
+
+fn put_claim(id: [u8; 32], amount: Amount) {
+	Claims::<Test>::insert(id, amount);
+	Unclaimed::<Test>::mutate(|u| *u += amount);
+}
+
+struct Passkey(p256::ecdsa::SigningKey);
+
+impl Passkey {
+	fn new(seed: u8) -> Self {
+		Self(p256::ecdsa::SigningKey::from_bytes(&[seed; 32].into()).unwrap())
+	}
+	fn public(&self) -> [u8; 33] {
+		self.0.verifying_key().to_encoded_point(true).as_bytes().try_into().unwrap()
+	}
+	fn id(&self) -> [u8; 32] {
+		ownership::passkey_id(&self.public())
+	}
+	/// What a browser hands back from `navigator.credentials.get`, with the
+	/// challenge the chain expects for `msg`.
+	fn assert(&self, msg: &[u8], kind: &str, flags: u8) -> OwnershipProof {
+		use p256::ecdsa::signature::Signer;
+		let challenge =
+			String::from_utf8(ownership::base64url(&sp_io::hashing::sha2_256(msg))).unwrap();
+		let cdj = format!(
+			r#"{{"type":"{kind}","challenge":"{challenge}","origin":"https://birdbrain.wtf","crossOrigin":false}}"#
+		)
+		.into_bytes();
+		let mut ad = sp_io::hashing::sha2_256(b"birdbrain.wtf").to_vec();
+		ad.push(flags);
+		ad.extend_from_slice(&[0, 0, 0, 1]);
+		let mut signed = ad.clone();
+		signed.extend_from_slice(&sp_io::hashing::sha2_256(&cdj));
+		let sig: p256::ecdsa::Signature = self.0.sign(&signed);
+		OwnershipProof::Passkey(ownership::PasskeyAssertion {
+			public: self.public(),
+			authenticator_data: ad.try_into().unwrap(),
+			client_data_json: cdj.try_into().unwrap(),
+			signature: sig.to_bytes().into(),
+		})
+	}
+}
+
+#[test]
+fn base64url_is_unpadded_and_url_safe() {
+	assert_eq!(ownership::base64url(b"hello"), b"aGVsbG8");
+	assert_eq!(ownership::base64url(&[0xfb, 0xff]), b"-_8");
+	assert_eq!(ownership::base64url(&[0u8; 32]).len(), 43);
+}
+
+#[test]
+fn a_passkey_proves_its_own_id_and_nothing_else() {
+	new_test_ext().execute_with(|| {
+		let pk = Passkey::new(7);
+		let msg = claim_msg(10);
+		assert!(pk.assert(&msg, "webauthn.get", 0x05).proves(&pk.id(), &msg));
+		// Signed for another destination.
+		assert!(!pk.assert(&claim_msg(11), "webauthn.get", 0x05).proves(&pk.id(), &msg));
+		// A registration ceremony, not an assertion.
+		assert!(!pk.assert(&msg, "webauthn.create", 0x05).proves(&pk.id(), &msg));
+		// The authenticator did not see the user.
+		assert!(!pk.assert(&msg, "webauthn.get", 0x04).proves(&pk.id(), &msg));
+		// Someone else's id.
+		assert!(!pk.assert(&msg, "webauthn.get", 0x05).proves(&Passkey::new(8).id(), &msg));
+		// Another key swapped into a valid assertion.
+		let OwnershipProof::Passkey(mut a) = pk.assert(&msg, "webauthn.get", 0x05) else { panic!() };
+		a.public = Passkey::new(8).public();
+		assert!(!OwnershipProof::Passkey(a).proves(&Passkey::new(8).id(), &msg));
+		// The raw P-256 key is not itself an id: the domain tag keeps the types apart.
+		let raw: [u8; 32] = pk.public()[1..].try_into().unwrap();
+		assert!(!pk.assert(&msg, "webauthn.get", 0x05).proves(&raw, &msg));
+	});
+}
+
+#[test]
+fn a_passkey_holder_claims_with_the_chip_signing() {
+	new_test_ext().execute_with(|| {
+		let pk = Passkey::new(7);
+		put_claim(pk.id(), 700);
+		assert_noop!(
+			Seeds::claim(RuntimeOrigin::none(), 10, pk.id(), pk.assert(&claim_msg(11), "webauthn.get", 0x05)),
+			Error::<Test>::BadClaimSignature
+		);
+		assert_ok!(Seeds::claim(RuntimeOrigin::none(), 10, pk.id(), pk.assert(&claim_msg(10), "webauthn.get", 0x05)));
+		assert_eq!(Balances::<Test>::get(10), 700);
+	});
+}
+
+#[test]
+fn an_ecdsa_holder_claims_with_the_id_substrate_gave_them() {
+	new_test_ext().execute_with(|| {
+		let pair = sp_core::ecdsa::Pair::from_seed(&[3; 32]);
+		let id = ownership::ecdsa_id(&pair.public().0);
+		put_claim(id, 400);
+		let wrapped = [b"<Bytes>".as_slice(), &claim_msg(10), b"</Bytes>"].concat();
+		assert_noop!(
+			Seeds::claim(RuntimeOrigin::none(), 10, id, OwnershipProof::Ecdsa(pair.sign(&claim_msg(11)))),
+			Error::<Test>::BadClaimSignature
+		);
+		assert_ok!(Seeds::claim(RuntimeOrigin::none(), 10, id, OwnershipProof::Ecdsa(pair.sign(&wrapped))));
+		assert_eq!(Balances::<Test>::get(10), 400);
+	});
+}
+
+#[test]
+fn a_passkey_claim_is_priced_above_a_plain_signature() {
+	new_test_ext().execute_with(|| {
+		let pk = Passkey::new(7);
+		let sr = sign_claim(&old_holder(), 10, false);
+		assert!(pk.assert(&claim_msg(10), "webauthn.get", 0x05).verify_weight().ref_time() > sr.verify_weight().ref_time());
 	});
 }

@@ -85,15 +85,15 @@ pub struct SeedKeys {
 // https://docs.substrate.io/main-docs/build/upgrade#runtime-versioning
 #[sp_version::runtime_version]
 pub const VERSION: RuntimeVersion = RuntimeVersion {
-	spec_name: alloc::borrow::Cow::Borrowed("birdbrain-seeds"),
-	impl_name: alloc::borrow::Cow::Borrowed("birdbrain-seeds"),
+	spec_name: alloc::borrow::Cow::Borrowed("seeds"),
+	impl_name: alloc::borrow::Cow::Borrowed("seeds"),
 	authoring_version: 1,
 	// The version of the runtime specification. A full node will not attempt to use its native
 	//   runtime in substitute for the on-chain Wasm runtime unless all of `spec_name`,
 	//   `spec_version`, and `authoring_version` are the same between Wasm and native.
 	// This value is set to 100 to notify Polkadot-JS App (https://polkadot.js.org/apps) to use
 	//   the compatible custom types.
-	spec_version: 101,
+	spec_version: 102,
 	impl_version: 1,
 	apis: apis::RUNTIME_API_VERSIONS,
 	transaction_version: 1,
@@ -122,8 +122,8 @@ pub const DAYS: BlockNumber = HOURS * 24;
 
 pub const BLOCK_HASH_COUNT: BlockNumber = 2400;
 
-/// One KAB, at 12 decimals.
-pub const KAB: Balance = 1_000_000_000_000;
+/// One unit, at 12 decimals. Each network names its own unit.
+pub const UNIT: Balance = 1_000_000_000_000;
 
 /// The version information used to identify this runtime when compiled natively.
 #[cfg(feature = "std")]
@@ -138,8 +138,8 @@ pub type Signature = MultiSignature;
 /// to the public key of our transaction signing scheme.
 pub type AccountId = <<Signature as Verify>::Signer as IdentifyAccount>::AccountId;
 
-/// A KAB amount.
-pub type Balance = pallet_seeds::Kab;
+/// An amount of the network's unit.
+pub type Balance = pallet_seeds::Amount;
 
 /// Index of a transaction in the chain.
 pub type Nonce = u32;
