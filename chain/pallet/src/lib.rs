@@ -22,8 +22,8 @@
 //!    nobody successfully challenges it, it matures and mints. If enough distinct
 //!    members do, it fails, and the failure counts against the proposer's
 //!    standing as a strike. A member may hold only a few points open at once.
-//! 4. **Approve upgrades.** Members vote, one member one vote. While the founding
-//!    set holds control, a founder's proposal passes unless a third of members
+//! 4. **Approve upgrades.** Members vote, one member one vote. While the first
+//!    members hold control, a first member's proposal passes unless a third of members
 //!    object. Members end that control by simple majority, once, for good.
 //! 5. **Seat validators.** A member who registers session keys queues for a
 //!    validator seat, oldest admission first. The runtime turns the list into
@@ -81,8 +81,8 @@ pub mod pallet {
 	pub type CommunityId = u32;
 	pub type MotionId = u32;
 
-	/// The founding community, the one the genesis members belong to.
-	pub const FOUNDING_COMMUNITY: CommunityId = 0;
+	/// The first community, the one the genesis members belong to.
+	pub const FIRST_COMMUNITY: CommunityId = 0;
 
 	/// What a holder of the old chain signs to move a snapshot balance: this
 	/// prefix, then this network's genesis hash, then the SCALE-encoded
@@ -159,11 +159,11 @@ pub mod pallet {
 		pub index: u64,
 		pub community: CommunityId,
 		pub admitted_at: BlockNumberFor<T>,
-		/// The session evidence the witnesses attested to. Zero for founders.
+		/// The session evidence the witnesses attested to. Zero for first members.
 		pub evidence: H256,
 		/// Who vouched. Kept so an expulsion can reach them.
 		pub witnesses: BoundedVec<T::AccountId, T::WitnessesRequired>,
-		pub founder: bool,
+		pub first_member: bool,
 		/// Witnessing someone later expelled, or a point that failed.
 		pub strikes: u32,
 		/// Points put forward that are still pending.
@@ -216,8 +216,8 @@ pub mod pallet {
 		SetCap { community: CommunityId, cap_per_era: u32 },
 		/// Remove a member. Everyone who witnessed them takes a strike.
 		Expel { who: T::AccountId },
-		/// End founding control. Irreversible.
-		EndFounding,
+		/// End opening control. Irreversible.
+		EndOpening,
 	}
 
 	#[derive(Encode, Decode, DecodeWithMemTracking, CloneNoBound, PartialEqNoBound, EqNoBound, DebugNoBound, TypeInfo, MaxEncodedLen)]
@@ -225,8 +225,8 @@ pub mod pallet {
 	pub struct Motion<T: Config> {
 		pub kind: MotionKind<T>,
 		pub proposer: T::AccountId,
-		/// Proposed by a founder while founding control held, so the veto rule applies.
-		pub by_founder: bool,
+		/// Proposed by a first member while opening control held, so the veto rule applies.
+		pub by_first_member: bool,
 		pub proposed_at: BlockNumberFor<T>,
 		pub ends_at: BlockNumberFor<T>,
 		pub ayes: u32,
@@ -298,7 +298,7 @@ pub mod pallet {
 	pub type OpenMotionOf<T: Config> = StorageMap<_, Blake2_128Concat, T::AccountId, MotionId>;
 
 	#[pallet::storage]
-	pub type FoundingActive<T> = StorageValue<_, bool, ValueQuery>;
+	pub type OpeningActive<T> = StorageValue<_, bool, ValueQuery>;
 
 	#[pallet::storage]
 	pub type Keys<T: Config> = StorageMap<_, Blake2_128Concat, T::AccountId, T::SessionKeys>;
@@ -317,10 +317,10 @@ pub mod pallet {
 	#[pallet::genesis_config]
 	#[derive(frame_support::DefaultNoBound)]
 	pub struct GenesisConfig<T: Config> {
-		/// The founding set: members of community 0, with keys if they validate.
-		pub founders: Vec<(T::AccountId, Option<T::SessionKeys>)>,
-		/// Admission cap per era for the founding community.
-		pub founding_cap: u32,
+		/// The first members: members of community 0, with keys if they validate.
+		pub first_members: Vec<(T::AccountId, Option<T::SessionKeys>)>,
+		/// Admission cap per era for the first community.
+		pub first_community_cap: u32,
 		/// The old chain's balances, keyed on public key, waiting to be claimed.
 		pub claims: Vec<([u8; 32], Amount)>,
 	}
@@ -329,15 +329,15 @@ pub mod pallet {
 	impl<T: Config> BuildGenesisConfig for GenesisConfig<T> {
 		fn build(&self) {
 			Communities::<T>::insert(
-				FOUNDING_COMMUNITY,
-				Community { cap_per_era: self.founding_cap, ..Default::default() },
+				FIRST_COMMUNITY,
+				Community { cap_per_era: self.first_community_cap, ..Default::default() },
 			);
-			NextCommunityId::<T>::put(FOUNDING_COMMUNITY + 1);
-			FoundingActive::<T>::put(!self.founders.is_empty());
-			for (who, keys) in &self.founders {
-				Pallet::<T>::admit(who.clone(), FOUNDING_COMMUNITY, H256::zero(), Default::default(), true);
+			NextCommunityId::<T>::put(FIRST_COMMUNITY + 1);
+			OpeningActive::<T>::put(!self.first_members.is_empty());
+			for (who, keys) in &self.first_members {
+				Pallet::<T>::admit(who.clone(), FIRST_COMMUNITY, H256::zero(), Default::default(), true);
 				if let Some(k) = keys {
-					Pallet::<T>::put_keys(who, k.clone()).expect("too many founders with keys");
+					Pallet::<T>::put_keys(who, k.clone()).expect("too many first members with keys");
 				}
 			}
 			let seated = Pallet::<T>::seat_list();
@@ -375,7 +375,7 @@ pub mod pallet {
 		MotionClosed { id: MotionId, passed: bool, ayes: u32, nays: u32, electorate: u32 },
 		CommunityOpened { id: CommunityId, cap_per_era: u32 },
 		Expelled { who: T::AccountId },
-		FoundingEnded,
+		OpeningEnded,
 		KeysSet { who: T::AccountId },
 		NewValidators { count: u32 },
 		Claimed { old: [u8; 32], to: T::AccountId, amount: Amount },
@@ -410,7 +410,7 @@ pub mod pallet {
 		/// Joined after the motion was proposed.
 		NotInElectorate,
 		OneMotionAtATime,
-		FoundingOver,
+		OpeningOver,
 		BadMotion,
 		KeyHoldersFull,
 		NothingToClaim,
@@ -572,7 +572,7 @@ pub mod pallet {
 			let who = ensure_signed(origin)?;
 			let me = Members::<T>::get(&who).ok_or(Error::<T>::NotMember)?;
 			ensure!(!OpenMotionOf::<T>::contains_key(&who), Error::<T>::OneMotionAtATime);
-			let founding = FoundingActive::<T>::get();
+			let opening = OpeningActive::<T>::get();
 			match &kind {
 				MotionKind::Upgrade { .. } => {},
 				MotionKind::OpenCommunity { cap_per_era } => ensure!(*cap_per_era > 0, Error::<T>::BadMotion),
@@ -580,7 +580,7 @@ pub mod pallet {
 					ensure!(Communities::<T>::contains_key(community), Error::<T>::NoSuchCommunity),
 				MotionKind::Expel { who: target } =>
 					ensure!(Members::<T>::contains_key(target), Error::<T>::NotMember),
-				MotionKind::EndFounding => ensure!(founding, Error::<T>::FoundingOver),
+				MotionKind::EndOpening => ensure!(opening, Error::<T>::OpeningOver),
 			}
 			let now = frame_system::Pallet::<T>::block_number();
 			let id = NextMotionId::<T>::mutate(|n| {
@@ -591,7 +591,7 @@ pub mod pallet {
 			let motion = Motion {
 				kind: kind.clone(),
 				proposer: who.clone(),
-				by_founder: founding && me.founder,
+				by_first_member: opening && me.first_member,
 				proposed_at: now,
 				ends_at: now.saturating_add(T::VotingPeriod::get().into()),
 				ayes: 1,
@@ -635,10 +635,10 @@ pub mod pallet {
 
 		/// Count a motion once its voting period is over, and carry it out if it passed.
 		///
-		/// A founder's motion (while founding control holds) passes unless a third
+		/// A first member's motion (while opening control holds) passes unless a third
 		/// of the electorate voted nay. Every other motion needs more than half the
-		/// electorate voting aye and less than a third nay. Ending founding control
-		/// needs a simple majority, and expelling a member is never on the founder rule.
+		/// electorate voting aye and less than a third nay. Ending opening control
+		/// needs a simple majority, and expelling a member is never on the first-member rule.
 		#[pallet::call_index(6)]
 		#[pallet::weight(Weight::from_parts(60_000_000, 0).saturating_add(T::DbWeight::get().reads_writes(8, 8)))]
 		pub fn close(origin: OriginFor<T>, id: MotionId) -> DispatchResult {
@@ -650,13 +650,13 @@ pub mod pallet {
 
 			let vetoed = m.nays.saturating_mul(3) >= m.electorate.max(1);
 			let majority = m.ayes.saturating_mul(2) > m.electorate;
-			let founder_rule = m.by_founder &&
-				FoundingActive::<T>::get() &&
+			let first_member_rule = m.by_first_member &&
+				OpeningActive::<T>::get() &&
 				matches!(m.kind, MotionKind::Upgrade { .. } | MotionKind::OpenCommunity { .. } | MotionKind::SetCap { .. });
 			let passed = match m.kind {
-				MotionKind::EndFounding => majority && FoundingActive::<T>::get(),
+				MotionKind::EndOpening => majority && OpeningActive::<T>::get(),
 				MotionKind::Expel { ref who } => majority && !vetoed && Members::<T>::contains_key(who),
-				_ if founder_rule => !vetoed,
+				_ if first_member_rule => !vetoed,
 				_ => majority && !vetoed,
 			};
 			if passed {
@@ -739,7 +739,7 @@ pub mod pallet {
 			community: CommunityId,
 			evidence: H256,
 			witnesses: BoundedVec<T::AccountId, T::WitnessesRequired>,
-			founder: bool,
+			first_member: bool,
 		) {
 			let index = NextMemberIndex::<T>::mutate(|n| {
 				let i = *n;
@@ -754,7 +754,7 @@ pub mod pallet {
 					admitted_at: frame_system::Pallet::<T>::block_number(),
 					evidence,
 					witnesses,
-					founder,
+					first_member,
 					strikes: 0,
 					pending_points: 0,
 				},
@@ -837,9 +837,9 @@ pub mod pallet {
 					}
 				}),
 				MotionKind::Expel { who } => Self::expel(who),
-				MotionKind::EndFounding => {
-					FoundingActive::<T>::put(false);
-					Self::deposit_event(Event::FoundingEnded);
+				MotionKind::EndOpening => {
+					OpeningActive::<T>::put(false);
+					Self::deposit_event(Event::OpeningEnded);
 				},
 			}
 		}

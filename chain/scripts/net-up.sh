@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Three nodes on this box, from the `local` preset: alice + bob are founders and
+# Three nodes on this box, from the `local` preset: alice + bob are first members and
 # validate from genesis; dave runs with his dev keys in the keystore but holds no
 # seat until he is admitted, registers keys and the next era turns over.
 #   p2p 30433-30435 · rpc 9984-9986 (localhost only) · data $SEEDS_DATA/<node>

@@ -27,7 +27,7 @@ Seeds ships under two governing constraints:
 | Seed → key claim (passkey binding) | zero-trust (target) | the user's own key is the anchor |
 | Seeds chain admission (`chain/`) | trust-minimised | members admit by witnessing against shared evidence; every rule is on-chain and every mint can be checked by anyone |
 | Seeds chain member key | zero-trust | derived on the member's own device from their passkey; no operator ever holds it, and with no fees nobody has to sponsor it |
-| Seeds chain founding control | trust-minimised, with a stated end | a founder's upgrade passes unless a third of members object; members end that control by simple majority, once, for good |
+| Seeds chain opening control | trust-minimised, with a stated end | a first member's upgrade passes unless a third of members object; members end that control by simple majority, once, for good |
 | Presence roots (`presence/`) | trust-minimised | rebuilt by anyone from the published roster; fixed in public before anything is decided against them |
 | Conformance vectors (`conformance/`) | zero-trust | anyone runs them against any engine |
 | Jambo validators | trust-minimised (lab) | a named validator set, said plainly; opening it up is the published next step, not an assumption |

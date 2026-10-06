@@ -1,6 +1,8 @@
 # Seeds
 
-**Identity grown from witnessed participation: a membership and contribution record a personhood check can sit beneath.**
+**Seeds is the root system. The organisations people build are what grows from it.**
+
+Seeds records who is here and which of their work held up. Everything a group builds on top (projects, rewards for tasks, a map of what it knows, money) reads from that record and cannot rewrite it. New here? Start with [`START-HERE.md`](START-HERE.md).
 
 A **Seed** is who someone is to a group, built from what they actually took part in: the sessions they were witnessed at, who they sat beside, what they put forward and which of it held up. It is bound to a key the person holds, not issued by anyone. Seeds is the set of rules that turns that into a membership with a vote, and a record of contributions that anyone can check.
 
@@ -27,13 +29,13 @@ The same rules also run as JAM services in a separate repository, [Jambo](https:
 | Only members write | A non-member's transaction is refused before it reaches the pool |
 | New units only where something held up | Units are minted when an unchallenged point matures, and nowhere else. Joining mints nothing. A network may start from balances claimable from an earlier ledger, which move only on the old key's signature |
 | Units are a record, not a currency | There is no transfer |
-| One member, one vote | Upgrades and the end of founding control are decided by members. No key can bypass a vote |
+| One member, one vote | Upgrades and the end of opening control are decided by members. No key can bypass a vote |
 
 [`TRUST.md`](TRUST.md) says what each component is trusted with and why.
 
 ## Protocol and profiles
 
-The protocol is kept small on purpose. A **profile** is a network running it with its own settings: the unit's name, how much a matured point creates, witnesses, caps, periods, seats. A profile may add funding, licences or prices above the chain, as contracts between people. It may never add anything that mints, gives a vote, or gives a place in line to whoever funds a group. See [`profiles/`](profiles).
+The protocol is the roots, kept small on purpose. A **profile** is a network running it with its own settings: the unit's name, how much a matured point creates, witnesses, caps, periods, seats. A profile may add funding, licences or prices above the chain, as contracts between people. It may never add anything that mints, gives a vote, or gives a place in line to whoever funds a group. See [`profiles/`](profiles).
 
 ## Running it
 

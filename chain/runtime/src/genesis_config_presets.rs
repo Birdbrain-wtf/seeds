@@ -1,4 +1,4 @@
-//! Genesis presets. The founding set are members of community 0 with keys, so
+//! Genesis presets. The first members are members of community 0 with keys, so
 //! they both validate and can witness the first admissions. No endowments and no
 //! admission mint: the only units at genesis are a snapshot waiting to be claimed.
 
@@ -13,8 +13,8 @@ fn keys(k: Sr25519Keyring, g: Ed25519Keyring) -> SeedKeys {
 	SeedKeys { aura: k.public().into(), grandpa: g.public().into() }
 }
 
-fn genesis(founders: Vec<(AccountId, Option<SeedKeys>)>, claims: Vec<([u8; 32], u128)>) -> Value {
-	let authorities: Vec<SeedKeys> = founders.iter().filter_map(|(_, k)| k.clone()).collect();
+fn genesis(first_members: Vec<(AccountId, Option<SeedKeys>)>, claims: Vec<([u8; 32], u128)>) -> Value {
+	let authorities: Vec<SeedKeys> = first_members.iter().filter_map(|(_, k)| k.clone()).collect();
 	build_struct_json_patch!(RuntimeGenesisConfig {
 		aura: pallet_aura::GenesisConfig {
 			authorities: authorities.iter().map(|k| k.aura.clone()).collect::<Vec<_>>(),
@@ -22,12 +22,12 @@ fn genesis(founders: Vec<(AccountId, Option<SeedKeys>)>, claims: Vec<([u8; 32], 
 		grandpa: pallet_grandpa::GenesisConfig {
 			authorities: authorities.iter().map(|k| (k.grandpa.clone(), 1)).collect::<Vec<_>>(),
 		},
-		seeds: SeedsConfig { founders, founding_cap: 10, claims },
+		seeds: SeedsConfig { first_members, first_community_cap: 10, claims },
 	})
 }
 
 /// Ferdie stands in for a holder of the old chain, so the claim path can be
-/// exercised on a dev chain. Ferdie is not a founder.
+/// exercised on a dev chain. Ferdie is not a first member.
 fn demo_claims() -> Vec<([u8; 32], u128)> {
 	vec![(Sr25519Keyring::Ferdie.public().0, 1_000 * UNIT)]
 }

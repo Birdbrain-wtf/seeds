@@ -6,12 +6,12 @@ Seeds has one protocol and more than one engine: the FRAME reference runtime in 
 
 | Group | Vectors | What they hold an engine to |
 | --- | --- | --- |
-| shape | S01–S06 | What exists at genesis: founders, no units, no transfer, founding control |
+| shape | S01–S06 | What exists at genesis: first members, no units, no transfer, opening control |
 | gate | G01 | Only members write |
 | admission | A01–A05 | Two witnesses on the same evidence admit; admission mints nothing; members write without fees |
 | claim | C01–C04 | A claim is bound to one network and one destination; the old key alone moves a snapshot balance, once |
 | points | P01–P03 | A point needs no bond; three challenges fail it, with a strike on the proposer |
-| governance | U01–U03 | A founder's upgrade passes unless members object; anyone applies authorised code; members end founding control |
+| governance | U01–U03 | A first member's upgrade passes unless members object; anyone applies authorised code; members end opening control |
 | issuance | M01–M03 | Maturity is the only mint, and issuance is exactly maturities plus claimed snapshot |
 | seats | V01–V03 | Queued members' keys join at an era and the chain keeps finalising |
 

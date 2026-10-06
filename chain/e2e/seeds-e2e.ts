@@ -4,7 +4,7 @@
 //
 //   bun run seeds-e2e.ts path/to/next-runtime.wasm
 //
-// Founders at genesis: Alice + Bob (validating), Charlie (no keys).
+// First members at genesis: Alice + Bob (validating), Charlie (no keys).
 // Dave is the newcomer, Eve the outsider, Ferdie the old-chain holder.
 
 import { ApiPromise, WsProvider, Keyring } from "@polkadot/api";
@@ -63,10 +63,10 @@ check(
   pallets.join(", "),
 );
 const v0 = (await api.rpc.state.getRuntimeVersion()).specVersion.toNumber();
-check((await api.query.seeds.memberCount()).toNumber() === 3, "genesis: three founders");
-check((await bal(alice.address)) === 0n, "founders hold nothing: joining mints no units", fmt(await bal(alice.address)));
+check((await api.query.seeds.memberCount()).toNumber() === 3, "genesis: three first members");
+check((await bal(alice.address)) === 0n, "first members hold nothing: joining mints no units", fmt(await bal(alice.address)));
 check(api.tx.seeds.transfer === undefined, "there is no transfer call: units are a record, not a currency");
-check((await api.query.seeds.foundingActive()).isTrue, "founding control is on");
+check((await api.query.seeds.openingActive()).isTrue, "opening control is on");
 check(((await api.query.aura.authorities()) as any).length === 2, "two validators at genesis");
 
 // ----------------------------------------------------------------- the gate
@@ -142,22 +142,22 @@ const upEnds = ((await api.query.seeds.motions(up)) as any).unwrap().endsAt.toNu
 console.log(`      waiting for the upgrade vote to end at #${upEnds}`);
 await until(upEnds);
 const closed = await send(api.tx.seeds.close(up), charlie);
-check(closed.includes("system.UpgradeAuthorized"), "a founder's upgrade with no objection is authorised", closed.filter((e) => /Upgrade|Motion/.test(e)).join(" "));
+check(closed.includes("system.UpgradeAuthorized"), "a first member's upgrade with no objection is authorised", closed.filter((e) => /Upgrade|Motion/.test(e)).join(" "));
 await send(api.tx.system.applyAuthorizedUpgrade(u8aToHex(wasm)), charlie);
 await Bun.sleep(8000);
 const v1 = (await api.rpc.state.getRuntimeVersion()).specVersion.toNumber();
 check(v1 === v0 + 1, "any member applies the authorised code: forkless upgrade, no sudo", `${v0} -> ${v1}`);
 
-// ------------------------------------------------------- end founding control
-await send(api.tx.seeds.propose("EndFounding"), dave);
+// ------------------------------------------------------- end opening control
+await send(api.tx.seeds.propose("EndOpening"), dave);
 const ef = (await api.query.seeds.nextMotionId()).toNumber() - 1;
 await send(api.tx.seeds.vote(ef, true), alice);
 await send(api.tx.seeds.vote(ef, true), bob);
 const efEnds = ((await api.query.seeds.motions(ef)) as any).unwrap().endsAt.toNumber();
-console.log(`      waiting for the founding vote to end at #${efEnds}`);
+console.log(`      waiting for the opening vote to end at #${efEnds}`);
 await until(efEnds);
 const ended = await send(api.tx.seeds.close(ef), dave);
-check(ended.includes("seeds.FoundingEnded") && !(await api.query.seeds.foundingActive()).isTrue, "members vote founding control away, 3 of 4");
+check(ended.includes("seeds.OpeningEnded") && !(await api.query.seeds.openingActive()).isTrue, "members vote opening control away, 3 of 4");
 
 // ---------------------------------------------------------------- maturity
 console.log(`      waiting for the point to mature at #${matures}`);

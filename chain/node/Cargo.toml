@@ -65,6 +65,8 @@ substrate-build-script-utils = { workspace = true, default-features = true }
 [features]
 default = ["std"]
 std = ["seeds-runtime/std"]
+# Network timing: eras of a day, two-week maturity, three days to vote.
+production = ["seeds-runtime/production"]
 # Dependencies that are only required if runtime benchmarking should be build.
 runtime-benchmarks = [
 	"frame-system/runtime-benchmarks",
