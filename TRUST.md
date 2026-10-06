@@ -24,6 +24,7 @@ Seeds ships under two governing constraints:
 | Seed records (witnessed contribution profile) | zero-trust | derived deterministically from witnessed events |
 | Participation / co-attendance graph | trust-minimised | deterministic, re-runnable, read-only over sources |
 | Identity Forest visualisation | zero-trust | pure function of public Seed data; no keys, no model, no randomness |
+| Seed mark (`mark/`) | zero-trust | the picture carries the account bytes and a check; anyone reads them back and looks the record up on chain. An unanchored mark proves nothing and is drawn hollow to say so |
 | Seed → key claim (passkey binding) | zero-trust (target) | the user's own key is the anchor |
 | Seeds chain admission (`chain/`) | trust-minimised | members admit by witnessing against shared evidence; every rule is on-chain and every mint can be checked by anyone |
 | Seeds chain member key | zero-trust | derived on the member's own device from their passkey; no operator ever holds it, and with no fees nobody has to sponsor it |

@@ -22,6 +22,9 @@ bun run profiles/chaos-sessions/identity-forest/scripts/build.ts
 ```
 
 - **Input** — `vault/seeds/*.md` (frontmatter + "## Topic profile" body). Read-only.
+- **Seed marks** — each Seed also gets a fixed, decodable mark (`out/marks/<slug>.svg`, and on the seed card):
+  its account bytes plus a check, or a hollow placeholder until it has one. Drawn by the protocol's
+  [`mark/mark.ts`](../../../mark) at the repo root (spec in its README); the page ships `drawMark` as source, not 57 SVGs.
 - **Output** — `profiles/chaos-sessions/identity-forest/out/`: `forest.svg` (static render),
   `index.html` (**the living page** — see below), `forest.json` (nodes + genome +
   co-attendance edges), `organisms/<slug>.svg` (one per Seed), `forest.png`

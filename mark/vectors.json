@@ -1,0 +1,35 @@
+{
+  "version": "seed-mark/v1",
+  "vectors": [
+    {
+      "name": "dev-alice",
+      "account": "0xd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d",
+      "kind": "anchored",
+      "payload": "0xd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d",
+      "check": "e615"
+    },
+    {
+      "name": "dev-bob",
+      "account": "0x8eaf04151687736326c9fea17e25fc5287613693c912909cb226aa4794f26a48",
+      "kind": "anchored",
+      "payload": "0x8eaf04151687736326c9fea17e25fc5287613693c912909cb226aa4794f26a48",
+      "check": "15e1"
+    },
+    {
+      "name": "alice-unanchored",
+      "profile": "chaos-sessions",
+      "slug": "alice",
+      "kind": "unanchored",
+      "payload": "0x3e5308709750f54dbac4e2ff3ba88840ddbf115d68a28cbc6c6f089d558c4dd6",
+      "check": "7c93"
+    },
+    {
+      "name": "bob-unanchored",
+      "profile": "chaos-sessions",
+      "slug": "bob",
+      "kind": "unanchored",
+      "payload": "0xd25899e83082c1820649de01a63d052115deb4aff5b356fbd0caf11f12af4a25",
+      "check": "dd58"
+    }
+  ]
+}

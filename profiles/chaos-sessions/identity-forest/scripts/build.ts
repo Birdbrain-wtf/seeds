@@ -31,6 +31,7 @@
 import { readdirSync, readFileSync, writeFileSync, mkdirSync, existsSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { pageHTML, type PNode, type PEdge } from "./page";
+import { accountBytes, unanchoredPayload, check, markSVG, toHex, type Kind } from "../../../../mark/mark";
 
 const ROOT = process.env.SEEDS_ROOT ?? ".";
 const SEEDS_DIR = process.env.SEEDS_DIR ?? join(ROOT, "vault/seeds");
@@ -69,6 +70,7 @@ type Seed = {
   mentioned: string[];
   topics: Topic[];
   quotes: Quote[];
+  address: string;
 };
 
 function parseSeed(file: string): Seed | null {
@@ -133,6 +135,7 @@ function parseSeed(file: string): Seed | null {
     mentioned: list("sessions_mentioned_in"),
     topics,
     quotes,
+    address: scalar("address") === "null" ? "" : scalar("address"),
   };
 }
 
@@ -498,6 +501,20 @@ if (existsSync(OUT)) rmSync(OUT, { recursive: true, force: true });
 mkdirSync(join(OUT, "organisms"), { recursive: true });
 
 for (const s of seeds) writeFileSync(join(OUT, "organisms", `${s.slug}.svg`), organismSVG(s));
+
+// ---------- seed marks (fixed; the organism changes, the mark does not) ----------
+// Anchored = the Seed's account, checkable on chain. Unanchored = a stable
+// placeholder from profile + slug, drawn hollow. Spec: the seed mark's MARK.md.
+const PROFILE = "chaos-sessions";
+const marks = seeds.map((s) => {
+  const kind: Kind = s.address ? "anchored" : "unanchored";
+  const payload = s.address ? accountBytes(s.address) : unanchoredPayload(PROFILE, s.slug);
+  return { kind, payload, hex: toHex(payload), check: check(kind, payload) };
+});
+mkdirSync(join(OUT, "marks"), { recursive: true });
+seeds.forEach((s, i) =>
+  writeFileSync(join(OUT, "marks", `${s.slug}.svg`), markSVG({ kind: marks[i].kind, payload: marks[i].payload, label: `${s.name}: ${marks[i].kind} seed ${marks[i].hex}` })),
+);
 const pos = layout(seeds);
 const forest = forestSVG(seeds, sprouts, edges, pos);
 writeFileSync(join(OUT, "forest.svg"), forest);
@@ -516,6 +533,7 @@ writeFileSync(
         actionItems: s.actionItems, topics: s.topics,
         depth: +depth[i].toFixed(4),
         sessions: s.attended,
+        mark: { kind: marks[i].kind, payload: marks[i].hex },
       })),
       edges: edges.map((e) => ({ a: seeds[e.a].slug, b: seeds[e.b].slug, shared: e.shared })),
     },
@@ -567,6 +585,7 @@ const pageNodes: PNode[] = seeds.map((s, i) => ({
   note: noteOf(s),
   fam: famOf(s),
   q: s.quotes.slice(0, 3),
+  mk: { k: marks[i].kind, p: marks[i].hex, c: marks[i].check },
 }));
 const pageEdges: PEdge[] = edges.map((e) => [e.a, e.b, e.shared]);
 
@@ -622,4 +641,4 @@ try {
 
 console.log(`Identity Forest built → ${OUT}`);
 console.log(`  seeds: ${seeds.length}  edges: ${edges.length}  shared-ties: ${edges.reduce((n, e) => n + e.shared, 0)}`);
-console.log(`  files: forest.svg, index.html, forest.json, organisms/*.svg (${seeds.length})`);
+console.log(`  files: forest.svg, index.html, forest.json, organisms/*.svg, marks/*.svg (${seeds.length})`);
