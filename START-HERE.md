@@ -30,3 +30,4 @@ Online, a person is either an account someone issued or a key they hold. An acco
 - [*Seeds: A Store of Values*](spec/seeds-intro.pdf), the white paper
 - [*Seeds: Protocol Specification*](spec/seeds.pdf), the full rules
 - [`README.md`](README.md), what is in this repository and how to run it
+- [Murmur](https://github.com/Birdbrain-wtf/murmur), the app people use to join and take part
