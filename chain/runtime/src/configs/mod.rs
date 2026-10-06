@@ -19,7 +19,7 @@ use sp_version::RuntimeVersion;
 
 use super::{
 	AccountId, Aura, Balance, Block, BlockNumber, Grandpa, Hash, Nonce, PalletInfo, Runtime,
-	RuntimeCall, RuntimeEvent, RuntimeOrigin, RuntimeTask, SeedKeys, UNIT, MINUTES, HOURS,
+	RuntimeCall, RuntimeEvent, RuntimeOrigin, RuntimeTask, SeedKeys, UNIT, HOURS,
 	SLOT_DURATION, VERSION,
 };
 
@@ -106,21 +106,32 @@ impl pallet_seeds::ValidatorSet<SeedKeys> for ConsensusSet {
 	}
 }
 
-// Lab values: short enough to watch a full cycle in one sitting. A chain that
-// mattered would run eras of a day and maturity of weeks.
+// Timing. Lab values (the default) are short enough to watch a full cycle in one
+// sitting. `--features production` gives the values a network that matters runs:
+// eras of a day, a two-week challenge window, three days to vote.
+#[cfg(not(feature = "production"))]
 parameter_types! {
-	pub const EraLength: u32 = 10 * MINUTES;
+	pub const EraLength: u32 = 10 * crate::MINUTES;
+	pub const MaturityPeriod: u32 = 5 * crate::MINUTES;
+	pub const VotingPeriod: u32 = 2 * crate::MINUTES;
+}
+#[cfg(feature = "production")]
+parameter_types! {
+	pub const EraLength: u32 = crate::DAYS;
+	pub const MaturityPeriod: u32 = 14 * crate::DAYS;
+	pub const VotingPeriod: u32 = 3 * crate::DAYS;
+}
+
+parameter_types! {
 	pub const WitnessesRequired: u32 = 2;
 	pub const WitnessAllowance: u32 = 3;
 	pub const CandidacyTimeout: u32 = HOURS;
 	pub const MaxStrikes: u32 = 2;
 	pub const MaturityMint: Balance = 10 * UNIT;
 	pub const MaxPendingPoints: u32 = 3;
-	pub const MaturityPeriod: u32 = 5 * MINUTES;
 	pub const ChallengeThreshold: u32 = 3;
 	pub const MaxMaturingPerBlock: u32 = 16;
 	pub const MaxNoteLen: u32 = 128;
-	pub const VotingPeriod: u32 = 2 * MINUTES;
 	pub const MaxValidators: u32 = 21;
 	pub const MaxKeyHolders: u32 = 1000;
 }

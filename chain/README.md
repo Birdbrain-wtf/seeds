@@ -15,9 +15,9 @@ All five live in one pallet, [`pallet/src/lib.rs`](pallet/src/lib.rs), whose hea
 | Job | In one line |
 | --- | --- |
 | Admit | Two existing members witness a newcomer against the same session evidence. Each witness has an allowance per era and each community a cap, and a member who is later expelled leaves a strike on everyone who vouched for them. |
-| Mint | Units are created in one place only: when a point someone put forward matures. Joining mints nothing, and founders start with nothing. |
+| Mint | Units are created in one place only: when a point someone put forward matures. Joining mints nothing, and first members start with nothing. |
 | Record | Putting a point forward costs nothing. If three members challenge it, it fails, nothing is minted and the proposer takes a strike. If not, it matures and the maturity mint is added. A member can have three points open at once. |
-| Approve upgrades | One member, one vote. A founding set starts the chain, and members end its control by simple majority, once. After that, any member can apply an approved upgrade. |
+| Approve upgrades | One member, one vote. A set of first members starts the chain, and members end their control by simple majority, once. After that, any member can apply an approved upgrade. |
 | Seat validators | Members who register keys queue for a seat, oldest admission first, up to 21. Each era the chain hands the list to consensus. |
 
 Only members can sign a transaction, which is what stands in for fees as the guard against spam. The one exception is `claim`, which lets a holder of an earlier chain move their snapshot balance across with a signature from their old key, so nobody's balance moves without them. The signature covers this network's genesis hash, so a claim made on one Seeds network cannot be replayed on another. The old key can be sr25519, ed25519, ECDSA or a passkey, checked on the chain.
@@ -54,7 +54,7 @@ A cold build takes a while: the SDK is large.
 bash scripts/e2e.sh
 ```
 
-This builds the node and a second runtime one version ahead, starts three nodes from a fresh genesis, and walks every job on the live chain. A non-member is refused before the pool. One witness does not admit, and two who name different evidence do not either. Two who agree admit Dave, nothing is minted, and he can then write without fees. A claim signed for another network is refused, so is one signed for the wrong account, and the right one moves 1,000 units across. A point is put forward with no bond. Three challenges fail another point, with a strike on its proposer and no mint. A founder's upgrade passes with no objection, and any member applies it, with no sudo and no restart. Members vote founding control away. Dave's point matures and mints 10, the only mint. Total issuance is exactly that maturity plus the snapshot. At the next era Dave takes a validator seat, and finality carries on past the change. It prints one line per check and exits non-zero if any fail. It takes about twelve minutes.
+This builds the node and a second runtime one version ahead, starts three nodes from a fresh genesis, and walks every job on the live chain. A non-member is refused before the pool. One witness does not admit, and two who name different evidence do not either. Two who agree admit Dave, nothing is minted, and he can then write without fees. A claim signed for another network is refused, so is one signed for the wrong account, and the right one moves 1,000 units across. A point is put forward with no bond. Three challenges fail another point, with a strike on its proposer and no mint. A first member's upgrade passes with no objection, and any member applies it, with no sudo and no restart. Members vote opening control away. Dave's point matures and mints 10, the only mint. Total issuance is exactly that maturity plus the snapshot. At the next era Dave takes a validator seat, and finality carries on past the change. It prints one line per check and exits non-zero if any fail. It takes about twelve minutes.
 
 ## Lab values, and what is still open
 
@@ -65,7 +65,7 @@ Not settled yet:
 - **Admission from attendance alone.** Here two members still send a `witness` call each. The aim is for membership to follow from the attendance record itself, two sessions alongside the same members, with no extra step for anyone. The chain does not compute that yet.
 - **Weights** are set by hand, not benchmarked.
 - **Rate limits.** Open points are capped at three per member, but there is no general rate limit. A member could still fill blocks with votes, and today the only answer is expulsion.
-- **The genesis.** The snapshot loader for real balances, and a chain spec with real founders on separate machines.
+- **The genesis.** The snapshot loader for real balances, and a chain spec with real first members on separate machines.
 - **Collectives and holders.** Collectives with their own accounts and their own votes are designed but not built. So is a holder tier: keys that aren't admitted people, allowed a short list of calls and charged a flat fee for them. Neither changes the rules above. A holder never votes or witnesses, and people still write for free.
 
 ## Provenance

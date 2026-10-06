@@ -61,6 +61,8 @@ substrate-wasm-builder = { optional = true, workspace = true, default-features =
 
 [features]
 default = ["std"]
+# Network timing (eras of a day, two-week maturity). Default is lab timing.
+production = []
 std = [
 	"pallet-seeds/std",
 	"serde/std",

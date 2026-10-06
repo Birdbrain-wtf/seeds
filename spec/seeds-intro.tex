@@ -57,13 +57,13 @@
 {\displayfont\LARGE\color{ink} Seeds: A Store of Values}\\[5mm]
 {\normalsize Birdbrain}\\[0.5mm]
 {\small\color{muted} \url{https://birdbrain.wtf}}\\[1mm]
-{\small\color{muted} 5 October 2026 \,\textperiodcentered\, Version 3.1}
+{\small\color{muted} 6 October 2026 \,\textperiodcentered\, Version 3.3}
 \end{center}
 
 \vspace{2mm}
 \begin{quote}
 \small
-\textbf{Abstract.} Online, a person is either an account that an institution issued or a key that they hold. An account can be closed by whoever issued it, and a key proves only that someone holds it. Neither records what a person has done or who will stand behind them. We propose identity that is grown, not issued. A person arrives by signing in to a meeting their group already holds. The sign-ins become a public attendance record, and a person who keeps turning up alongside the same members becomes a member without anyone filling anything in. The people who were there need act only when the record is wrong. What a member contributes is recorded against them, and it stands unless three members challenge it. Joining brings a vote and no units. New units of the network's record are created only when a contribution stands, so what a member holds is what they have added. There is no treasury, no fee and no administrator. Members write for free, change the rules by one member, one vote, and run the machines that keep the record. A test network has run these rules, and every unit of its supply traced to one of them.
+\textbf{Abstract.} Online, a person is either an account that an institution issued or a key that they hold. An account can be closed by whoever issued it, and a key proves only that someone holds it. Neither records what a person has done or who will stand behind them. We propose identity that is grown, not issued. A person arrives by signing in to a meeting their group already holds. The sign-ins become a public attendance record, and a person who keeps turning up alongside the same members becomes a member without anyone filling anything in. The people who were there need act only when the record is wrong. What a member contributes is recorded against them, and it stands unless three members challenge it. Joining brings a vote and no units. New units of the network's record are created only when a contribution stands, so what a member holds is what they have added. No name is held on the network, and votes and challenges are designed to be counted without revealing who cast them. There is no treasury, no fee and no administrator. Members write for free, change the rules by one member, one vote, and run the machines that keep the record. A test network has run these rules, and every unit of its supply traced to one of them. Seeds is meant as a root system. The organisations a group goes on to build grow from it and read from it, and none can rewrite it.
 \end{quote}
 
 \section{Introduction}
@@ -79,6 +79,8 @@ So neither an account nor a key says who a person is to the people they work wit
 
 What is needed is identity based on witnessed participation instead of issuance, so that a contribution can be traced to a person without any institution's permission. This paper describes a network that does this. Membership comes from turning up, in front of members who could say otherwise. Contributions are recorded against the member who made them. The network depends on members being unwilling to put their standing behind someone they have not met, and it limits the damage when some of them are willing.
 
+Seeds works like a root system. It records two things: who is here, and which of their work held up. It keeps recording both for as long as the group meets. Everything a group grows from it later, such as shared projects, rewards for tasks, a map of what it knows and the money that moves around it, sits above the record. Each of those draws on the record, and none can rewrite it.
+
 \section{Grown, not issued}
 \label{sec:grown}
 
@@ -86,7 +88,7 @@ A person's key on the network is called their \emph{Seed}. It is made by the pas
 
 A Seed on its own is only a key. It proves that someone controls a device. It becomes an identity as other members add to it: the members who were present when its holder joined, the contributions the holder put forward, and which of those stood.
 
-That gives every act on the network a trail (Figure~\ref{fig:trail}). A contribution traces to the member who put it forward. That member traces to the sessions where they were admitted, and to the members who were present at them. Each witness was witnessed in turn, back to the founders. Nobody issued any link in the trail, and nobody can withdraw one.
+That gives every act on the network a trail (Figure~\ref{fig:trail}). A contribution traces to the member who put it forward. That member traces to the sessions where they were admitted, and to the members who were present at them. Each witness was witnessed in turn, back to the first members. Nobody issued any link in the trail, and nobody can withdraw one.
 
 \begin{figure}[h]
 \centering
@@ -98,7 +100,7 @@ That gives every act on the network a trail (Figure~\ref{fig:trail}). A contribu
   \draw[flow] (c) -- (m);
   \draw[flow] (m) -- (w);
   \draw[flow] (w) -- (s);
-  \draw[flow,dashed] (w.south) to[out=-90,in=-90,looseness=0.7] node[below,note,pos=0.5] {each witness was witnessed in turn, back to the founders} (m.south);
+  \draw[flow,dashed] (w.south) to[out=-90,in=-90,looseness=0.7] node[below,note,pos=0.5] {each witness was witnessed in turn, back to the first members} (m.south);
 \end{tikzpicture}
 \caption{The trail from an act back to a person.}
 \label{fig:trail}
@@ -166,6 +168,23 @@ Once a contribution is put forward, other members have a fixed window in which t
 \end{figure}
 
 A contribution that stands has not been proved true or useful. It means that members who could have objected did not, in enough number, in time. The network records that judgement and makes no other.
+
+\section{Private by default}
+\label{sec:private}
+
+A record that traces every act to a person could become a record of everything a person did. Seeds is built so that it does not.
+
+The network holds no names. A member's Seed is a key, and what they are called is their own choice, made off the network, with no name as the default. Each act also carries only as much identity as its rule needs.
+
+\begin{itemize}
+  \item \textbf{Votes and challenges are counted, not attributed.} A member proves that they are one of the members, and that they have not already voted on this question, without saying which member they are. Everyone can check the count. Nobody learns who cast it.
+  \item \textbf{Contributions carry a name the member chooses.} Credit needs a holder, so a contribution is recorded against a name. It can be a separate name for each setting, so work in one group is not joined to work in another. A member has one such name in each setting, so a strike cannot be shed by starting again.
+  \item \textbf{Linking is the member's act.} A member can later prove that several names are theirs, to claim a body of work or to show that something done on their behalf traces back to them. Nobody else can make that link.
+\end{itemize}
+
+The trail of Figure~\ref{fig:trail} still exists for every act. It ends at a member in good standing, and it goes further only when the member chooses.
+
+Privacy has costs, and they are the network's to weigh. A secret ballot in a room of ten hides little, since a vote of nine to one says a great deal, and cover grows only as a group grows. A strike made under one name does not follow its holder to another unless they link them. The admissions, the witnesses and the machines that keep the record stay public, because the rules that protect the network depend on them.
 
 \section{A store of values}
 \label{sec:values}
@@ -241,12 +260,14 @@ It starts from a group that already meets. People turn up to a regular session b
 
 Anyone may also fund a group from outside, and the rules allow for that without depending on it. Whatever passes between a funder and a group is money and a contract, kept off the network. It creates no units, carries no vote and gives the funder no place in line, so a funder cannot become the centre that Figure~\ref{fig:edge} rules out. A funder may set its own terms with the groups it backs. Those terms sit above the rules and never inside them.
 
+The same holds for what a group builds once it is running. It may set tasks and reward them, keep a shared map of what it knows, or charge for answers drawn from it. Each of these asks the record the same two questions, who is a member and which contributions stood, and none of them can change the answers.
+
 \section{Rules and machines}
 \label{sec:rules}
 
 Any change to the network's software or settings is a motion that members vote on, one member, one vote. A motion passes with more than half of members in favour and fewer than a third against. The list of who may vote is fixed when the motion opens, so nobody can be admitted in order to swing it. No key can bypass a vote, because there is no administrator.
 
-The founders start the network, and for a founding period a founder's upgrade passes unless a third of members object. Members can end that period by a simple majority. They can do it once, and it cannot be restarted.
+The first members start the network, and for an opening period a first member's upgrade passes unless a third of members object. Members can end that period by a simple majority. They can do it once, and it cannot be restarted.
 
 The machines that keep the record belong to members. Any member can run the software. Those who do are placed in line, longest-standing first, and each period the first twenty-one produce the blocks and confirm them. Proof-of-work is one CPU, one vote~\cite{nakamoto2008}. Here it is one member, one machine in line. Nobody buys a place, and nobody is paid for holding one. Members whose machines are not among the twenty-one still write, vote and witness.
 
@@ -271,7 +292,7 @@ The rules above have run on a test network of three nodes on one machine, holdin
   \item an old key claimed 1,000 units to that member, without the member signing anything, and a claim signed for a different network was refused
   \item a contribution that three members challenged created nothing and left a strike against the member who put it forward
   \item an upgrade was voted in and applied while the network kept running, with no administrator
-  \item members voted the founding period away, three of four
+  \item members voted the opening period away, three of four
   \item a contribution stood after one challenge, and 10 units were created for the member who made it
   \item the new member's machine joined the line at the next period and blocks kept being confirmed
 \end{itemize}
@@ -290,13 +311,16 @@ At the end the supply was exactly 1,010 units: one contribution at 10 and the cl
   \item \textbf{Seniority.} The twenty-second member with a machine waits. Taking turns is not designed.
   \item \textbf{Recovery.} A member who loses every device has no way back yet.
   \item \textbf{What builds on what.} The test network records each contribution on its own. Recording that one builds on another is designed in outline only, and the nine-tenths and one-tenth split is an opening example, not a settled rule.
+  \item \textbf{Private acts.} Secret ballots, anonymous challenges and separate names for each setting are designed and not built into the network. The proof they rest on has been run outside it, over one real session's attendance. The companion paper sets out the construction and its costs.
   \item \textbf{Settings.} Periods of a day and windows of weeks suit a real network better than minutes. Those lengths, and the amount created when a contribution stands, are for members to decide.
 \end{itemize}
 
 \section{Conclusion}
 \label{sec:conclusion}
 
-We have described identity that needs no issuer. A key becomes a member when its holder keeps turning up in front of the same members, and the record of it stands unchallenged. A member's contributions are recorded against them and stand unless three members object. Joining creates no units. New units exist only when a contribution stands, so the whole supply can be traced to what members made. Members hold the vote, one each, and their machines keep the record. No account anywhere in the system can admit a person, create a unit or change a rule on its own authority.
+We have described identity that needs no issuer. A key becomes a member when its holder keeps turning up in front of the same members, and the record of it stands unchallenged. A member's contributions are recorded against them and stand unless three members object. Joining creates no units. New units exist only when a contribution stands, so the whole supply can be traced to what members made. Members hold the vote, one each, and their machines keep the record. No account anywhere in the system can admit a person, create a unit or change a rule on its own authority. And the record holds no names: what it attributes, it attributes to members, who decide when their acts are joined together.
+
+Seeds is the root system, and the organisations a group forms are what grows from it. They can be funded, reorganised or wound up without touching the roots, and the roots stay where anyone can check them.
 
 The network does not decide who is a person or what is true. It records what members were willing to stand behind and who stood behind it, and it keeps that record where anyone can check it.
 

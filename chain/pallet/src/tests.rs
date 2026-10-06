@@ -79,9 +79,9 @@ impl pallet_seeds::Config for Test {
 	type MaxKeyHolders = MaxKeyHolders;
 }
 
-const A: u64 = 1; // founder, validator
-const B: u64 = 2; // founder, validator
-const C: u64 = 3; // founder, no keys
+const A: u64 = 1; // first member, validator
+const B: u64 = 2; // first member, validator
+const C: u64 = 3; // first member, no keys
 const EV: H256 = H256::repeat_byte(0xe1);
 
 fn old_holder() -> sr25519::Pair {
@@ -93,8 +93,8 @@ fn new_test_ext() -> sp_io::TestExternalities {
 	ACCEPT.with(|a| *a.borrow_mut() = true);
 	let mut t = frame_system::GenesisConfig::<Test>::default().build_storage().unwrap();
 	pallet_seeds::GenesisConfig::<Test> {
-		founders: vec![(A, Some(11)), (B, Some(22)), (C, None)],
-		founding_cap: 3,
+		first_members: vec![(A, Some(11)), (B, Some(22)), (C, None)],
+		first_community_cap: 3,
 		claims: vec![(old_holder().public().0, 5_000)],
 	}
 	.assimilate_storage(&mut t)
@@ -150,13 +150,13 @@ fn last_closed() -> bool {
 fn genesis_founds_the_network() {
 	new_test_ext().execute_with(|| {
 		assert_eq!(MemberCount::<Test>::get(), 3);
-		assert!(FoundingActive::<Test>::get());
-		// Founding mints nothing: the only units are the snapshot's.
+		assert!(OpeningActive::<Test>::get());
+		// Genesis mints nothing: the only units are the snapshot's.
 		assert_eq!(Balances::<Test>::get(A), 0);
 		assert_eq!(TotalIssuance::<Test>::get(), 5_000);
 		assert_eq!(Unclaimed::<Test>::get(), 5_000);
 		assert_eq!(Validators::<Test>::get().to_vec(), vec![(A, 11), (B, 22)]);
-		assert!(Members::<Test>::get(C).unwrap().founder);
+		assert!(Members::<Test>::get(C).unwrap().first_member);
 		// Admission gives the account a provider, so frame_system accepts its nonce.
 		assert_eq!(System::providers(&A), 1);
 	});
@@ -326,7 +326,7 @@ fn a_block_holds_a_bounded_number_of_maturities() {
 // ------------------------------------------------------------------ motions
 
 #[test]
-fn a_founders_upgrade_passes_unless_a_third_object() {
+fn a_first_members_upgrade_passes_unless_a_third_object() {
 	new_test_ext().execute_with(|| {
 		let code_hash = <Test as frame_system::Config>::Hashing::hash(b"new runtime");
 		let id = motion(A, MotionKind::Upgrade { code_hash });
@@ -360,21 +360,21 @@ fn a_members_upgrade_needs_a_majority() {
 }
 
 #[test]
-fn members_end_founding_control_and_founders_lose_the_veto_rule() {
+fn members_end_opening_control_and_first_members_lose_the_veto_rule() {
 	new_test_ext().execute_with(|| {
 		admit(10, 0, [A, B]);
 		admit(11, 0, [A, C]);
-		let id = motion(10, MotionKind::EndFounding);
+		let id = motion(10, MotionKind::EndOpening);
 		assert_ok!(Seeds::vote(o(11), id, true));
 		assert_ok!(Seeds::vote(o(C), id, true));
 		assert_ok!(Seeds::vote(o(A), id, false));
 		close_after_voting(id);
 		assert!(last_closed()); // 3 of 5
-		assert!(!FoundingActive::<Test>::get());
-		assert_noop!(Seeds::propose(o(A), MotionKind::EndFounding), Error::<Test>::FoundingOver);
-		// A founder's upgrade with no objections now fails: it needs a majority.
+		assert!(!OpeningActive::<Test>::get());
+		assert_noop!(Seeds::propose(o(A), MotionKind::EndOpening), Error::<Test>::OpeningOver);
+		// A first member's upgrade with no objections now fails: it needs a majority.
 		let id = motion(A, MotionKind::Upgrade { code_hash: H256::zero() });
-		assert!(!Motions::<Test>::get(id).unwrap().by_founder);
+		assert!(!Motions::<Test>::get(id).unwrap().by_first_member);
 		close_after_voting(id);
 		assert!(!last_closed());
 	});
@@ -385,7 +385,7 @@ fn voting_rules() {
 	new_test_ext().execute_with(|| {
 		let id = motion(A, MotionKind::Upgrade { code_hash: H256::zero() });
 		assert_noop!(
-			Seeds::propose(o(A), MotionKind::EndFounding),
+			Seeds::propose(o(A), MotionKind::EndOpening),
 			Error::<Test>::OneMotionAtATime
 		);
 		assert_noop!(Seeds::close(o(B), id), Error::<Test>::VotingOpen);
