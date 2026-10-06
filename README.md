@@ -16,6 +16,7 @@ This repository is [Birdbrain](https://birdbrain.wtf)'s. It holds the protocol, 
 | [`chain/`](chain) | The reference runtime. Five pallets, one of them Seeds: admit, record, mint, vote, seat validators |
 | [`conformance/`](conformance) | The rules as 28 vectors. Any engine that claims to run Seeds is held to them. The reference runtime passes all 28 |
 | [`presence/`](presence) | Attendance roots: who was in the room, as a Merkle root anyone can rebuild. The evidence admission reads |
+| [`mark/`](mark) | The seed mark: a Seed's identity as a fixed picture. It carries the member's account and a check, so anyone can read the bytes back and look the record up on chain. A phone reads it with its camera, on the device |
 | [`profiles/`](profiles) | Networks that run the protocol with their own settings. [`chaos-sessions/`](profiles/chaos-sessions) is the first, with the tooling that turns its sessions into Seed records and draws them as a forest |
 
 The same rules also run as JAM services in a separate repository, [Jambo](https://github.com/Birdbrain-wtf/jambo). People meet the network through [Murmur](https://github.com/Birdbrain-wtf/murmur), Birdbrain's open app.
@@ -43,6 +44,7 @@ The protocol is the roots, kept small on purpose. A **profile** is a network run
 bash chain/scripts/e2e.sh 2>&1 | tee run.log    # build, start three nodes, walk every rule (Rust, ~12 min once built)
 bun run conformance/check-log.ts run.log         # hold the run to the vectors
 cd presence && bun install && bun run attendance-root.ts self-test
+cd ../mark && bun run test.ts                    # the seed mark: round-trips, tamper, frozen vectors
 ```
 
 ## Releases

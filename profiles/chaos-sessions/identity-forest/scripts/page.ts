@@ -17,6 +17,8 @@
  */
 
 export type PTopic = { topic: string; sessions: number; hue: number };
+import { drawMark } from "../../../../mark/mark";
+
 export type PNode = {
   slug: string; name: string; x: number; y: number; rot: number;
   att: number; men: number; ai: number; conf: string; sol: number;
@@ -26,6 +28,7 @@ export type PNode = {
   note: number;     // one pentatonic midi note — presence deepens the voice
   fam: number[];    // six timbral-family weights from the topic hue wheel
   q: { t: string; s: string; at: string }[]; // real utterances: text, session, timestamp
+  mk: { k: string; p: string; c: number }; // seed mark: kind, 32-byte payload, check bits
 };
 export type PEdge = [number, number, number]; // a, b, shared
 
@@ -235,6 +238,10 @@ export function pageHTML(nodes: PNode[], edges: PEdge[], sentences: string[], se
     border-left:2px solid var(--hair); padding:2px 0 2px 12px; margin:0 0 12px}
   .card .quote .src{display:block; font-family:"JetBrains Mono",monospace; font-style:normal; font-size:9px;
     letter-spacing:.14em; text-transform:uppercase; color:var(--faint); margin-top:5px}
+  .card .mark{display:flex; align-items:center; gap:14px; margin:14px 0 2px}
+  .card .mark svg{flex:none; width:68px; height:auto}
+  .card .mcap{font-family:"JetBrains Mono",monospace; font-size:9.5px; line-height:1.55; letter-spacing:.04em; color:var(--faint); overflow-wrap:anywhere}
+  .card .mcap b{display:block; font-weight:500; letter-spacing:.14em; text-transform:uppercase; color:var(--muted); margin-bottom:3px}
   .card .x{position:absolute; top:14px; right:14px; border:1px solid var(--hair); background:rgba(236,230,216,.06); color:var(--muted); width:30px; height:30px; border-radius:50%; cursor:pointer; font-size:15px; line-height:1}
   .card .x:hover{background:rgba(236,230,216,.14); color:var(--ink)}
 
@@ -340,6 +347,7 @@ export function pageHTML(nodes: PNode[], edges: PEdge[], sentences: string[], se
   <h2 id="c-name"></h2>
   <div class="meta" id="c-meta"></div>
   <p class="poem" id="c-poem"></p>
+  <div class="mark"><div id="c-mark"></div><div class="mcap" id="c-mcap"></div></div>
   <div id="c-words-wrap"><h3>In their words</h3><div id="c-words"></div></div>
   <h3>Threads of thought</h3>
   <div id="c-topics"></div>
@@ -361,6 +369,7 @@ export function pageHTML(nodes: PNode[], edges: PEdge[], sentences: string[], se
 const DATA = ${data};
 const SENT = ${sent};
 const N = DATA.nodes, E = DATA.edges, SESS = DATA.sessions;
+const drawMark = ${drawMark.toString()};
 const svg = document.getElementById("forest");
 const NS = "http://www.w3.org/2000/svg";
 
@@ -593,6 +602,14 @@ function select(idx){
   document.getElementById("c-name").textContent = n.name;
   document.getElementById("c-meta").textContent = \`\${n.att} attended · \${n.men} mentioned · \${n.conf} confidence\`;
   document.getElementById("c-poem").textContent = poem(idx);
+  const mk = n.mk, bytes = mk.p.slice(2).match(/../g).map(h=>parseInt(h,16));
+  const anch = mk.k==="anchored";
+  document.getElementById("c-mark").innerHTML = drawMark({ kind: mk.k, payload: bytes, check: mk.c, hue: n.aura,
+    ink: anch? "#ece6d8" : "rgba(236,230,216,.5)", size: 68, label: n.name+": "+mk.k+" seed "+mk.p });
+  const cap = document.getElementById("c-mcap");
+  cap.innerHTML = anch? "<b>Seed mark · on chain</b>" : "<b>Seed mark · not anchored</b>";
+  cap.appendChild(document.createTextNode(anch? mk.p.slice(0,10)+"…"+mk.p.slice(-8)+" · scan it to read the account"
+    : "A placeholder until this Seed has an account. It proves nothing yet."));
   const ww = document.getElementById("c-words-wrap"), wl = document.getElementById("c-words");
   wl.innerHTML="";
   const qs = n.q||[];
