@@ -10,6 +10,7 @@ From v2, every release is:
 
 | tag | commit | CID | fixed in | date |
 |---|---|---|---|---|
+| v3 | `359c84e` | [`bafybeihxaudmkcq…`](https://ipfs.birdbrain.wtf/ipfs/bafybeihxaudmkcqkkeffdpytg6kqbqjbhn3ubd5dhsobtx4wqwq7jwvnje/) | BBT #159782-1 | 2026-10-06 |
 | v2 | `f8d7170` | [`bafybeib2y724ril…`](https://ipfs.birdbrain.wtf/ipfs/bafybeib2y724rilxyupvfundsy5scyhjrjhi5fxcnm76m2f6lbigqfalci/) | BBT #142890-1 | 2026-10-05 |
 | v1 | `0d11b6e` | [`bafybeihixnfww2q…`](https://ipfs.birdbrain.wtf/ipfs/bafybeihixnfww2qx5xquwvkm5gccszniwwn3tlmq3jkto3gpcmtvm6uq4y/) | Kreivo, tx `0x1c64dc31ad…` (legacy) | 2026-08-10 |
 
@@ -21,6 +22,15 @@ From v2, every release is:
 4. Hold the code to the rules: `bash chain/scripts/e2e.sh | tee run.log && bun run conformance/check-log.ts run.log`.
 
 ## Full identifiers
+
+### v3
+
+- commit `359c84e`
+- CID `bafybeihxaudmkcqkkeffdpytg6kqbqjbhn3ubd5dhsobtx4wqwq7jwvnje`
+- source `https://ipfs.birdbrain.wtf/ipfs/bafybeihxaudmkcqkkeffdpytg6kqbqjbhn3ubd5dhsobtx4wqwq7jwvnje/seeds-v3-src.tar.gz`
+- fixed on the BBT chain (genesis `0x590faee06c5152afe2841247408bc2cff08a738482bc21581d9cd622a4080260`) in block #159782, `0x69a598ebd25f52300b2381ff555d0a0aafc2d7456eab77c04d3a859ee78f8bcb`, extrinsic 1, tx `0x5e211c0fea9b3b2f0c4b6bd91cbc13d834614c76fbe827a0806f0a2d76386c97`
+- signed by the release key `5DFXkAKLVMnmyexsYXHs8tBSmbpvEMPWjB1iiNpmJN3SrGC8`
+- remark `BIRDBRAIN::RELEASE::seeds::v3::bafybeihxaudmkcqkkeffdpytg6kqbqjbhn3ubd5dhsobtx4wqwq7jwvnje::359c84e`
 
 ### v2
 
