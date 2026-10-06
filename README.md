@@ -18,7 +18,7 @@ This repository is [Birdbrain](https://birdbrain.wtf)'s. It holds the protocol, 
 | [`presence/`](presence) | Attendance roots: who was in the room, as a Merkle root anyone can rebuild. The evidence admission reads |
 | [`profiles/`](profiles) | Networks that run the protocol with their own settings. [`chaos-sessions/`](profiles/chaos-sessions) is the first, with the tooling that turns its sessions into Seed records and draws them as a forest |
 
-The same rules also run as JAM services in a separate repository, [Jambo](https://github.com/Birdbrain-wtf/jambo).
+The same rules also run as JAM services in a separate repository, [Jambo](https://github.com/Birdbrain-wtf/jambo). People meet the network through [Murmur](https://github.com/Birdbrain-wtf/murmur), Birdbrain's open app.
 
 ## The rules
 
