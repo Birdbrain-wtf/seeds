@@ -17,7 +17,7 @@ From v2, every release is:
 ## Check a release yourself
 
 1. Fetch it: `ipfs get <cid>`, or download from the gateway.
-2. Compare the source: `git archive --format=tar.gz <commit> | gunzip | sha256sum` against `gunzip -c seeds-<tag>-src.tar.gz | sha256sum`.
+2. Compare the source: `git archive --format=tar.gz <commit> | gunzip | sha256sum` against `gunzip -c seeds-<tag>-src.tar.gz | sha256sum`. The commits for v1 to v3 predate the 7 October 2026 change that credited every commit to Birdbrain. The files are identical, but the commit IDs changed. The originals named in their remarks are kept at `refs/archive/pre-birdbrain-attribution/main`, so fetch them first: `git fetch origin 'refs/archive/*:refs/archive/*'`.
 3. Read the commitment: open `https://polkadot.js.org/apps/?rpc=wss://rpc.birdbrain.wtf#/explorer/query/<block>`, find the extrinsic, and check its signer is the release key and its remark carries the same CID and commit.
 4. Hold the code to the rules: `bash chain/scripts/e2e.sh | tee run.log && bun run conformance/check-log.ts run.log`.
 
