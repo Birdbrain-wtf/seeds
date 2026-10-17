@@ -2,7 +2,7 @@
   "what": "Fixed audio timbres for the Identity Forest. Generated ONCE by a sound model, then treated as static assets — the mapping from record to sound (who, when, pitch, blend) is a pure deterministic function of the Seed data; these files are only the instrument.",
   "model": "fal-ai/stable-audio-25/text-to-audio (Stable Audio 2.5 via fal.ai)",
   "generated": "2026-08-09",
-  "regenerate": "bun run infra/skills/sonic-signature/scripts/fal-audio.ts --prompt <prompt> --seconds <s> --seed <seed> --out assets/audio/<name>.wav  (note: model outputs are not bit-reproducible even with a fixed seed — regeneration changes the instrument, not the score)",
+  "regenerate": "a text-to-audio call with --prompt <prompt> --seconds <s> --seed <seed> --out assets/audio/<name>.wav  (note: model outputs are not bit-reproducible even with a fixed seed — regeneration changes the instrument, not the score)",
   "processing": "ffmpeg: one-shots trimmed to a single attack + fade; all stems loudness-normalised (textures -19 LUFS, bed -23 LUFS, one-shots -16/-17 LUFS); encoded AAC 96-112k to web/*.m4a",
   "pluck_root_midi": 48,
   "stems": [

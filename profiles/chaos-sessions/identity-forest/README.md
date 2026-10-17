@@ -124,6 +124,16 @@ Regenerating a stem changes the *instrument*, never the *score* — and model
 outputs are not bit-reproducible, so regeneration is a deliberate act, recorded
 in the manifest.
 
+## Claimed Seeds
+
+A member claims their Seed from the app's Profile. The rules and the ledger are
+[`scripts/seed-claims.ts`](scripts/seed-claims.ts).
+When a claim settles, the account is written into the Seed's `address` and the mark turns
+solid. A claim can name several Seeds that were one person: the first keeps its slug, the
+others get `same_as: <first>` and the build folds their sessions, topics and words into it
+(`foldClaimed`). The sign-in service rebuilds this forest itself when it settles a claim.
+Steward view and objections: `bun run scripts/settle-claims.ts`.
+
 ## Published
 
 Live + public at **https://rw.zo.space/seeds/forest** (page route iframes

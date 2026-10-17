@@ -2,15 +2,15 @@
 """Distribute stage — fan extracts out into Birdbrain's queryable structures.
 
 Reads:
-  core/vault/calls/chaos-sessions/_attendees.yaml
-  core/vault/calls/chaos-sessions/CS*/extract/en/*.yaml
+  vault/calls/chaos-sessions/_attendees.yaml
+  vault/calls/chaos-sessions/CS*/extract/en/*.yaml
 
 Writes:
-  core/vault/seeds/<slug>.md                — one per attended person
-  core/vault/concepts/<slug>.md             — promoted (>=2 sessions)
-  core/vault/concepts/_provisional/<slug>.md — first appearance
-  core/vault/calls/chaos-sessions/_edges.yaml — typed graph edges
-  core/vault/calls/chaos-sessions/_edges.json — graph edges (JSON for zo.space API)
+  vault/seeds/<slug>.md                — one per attended person
+  vault/concepts/<slug>.md             — promoted (>=2 sessions)
+  vault/concepts/_provisional/<slug>.md — first appearance
+  vault/calls/chaos-sessions/_edges.yaml — typed graph edges
+  vault/calls/chaos-sessions/_edges.json — graph edges (JSON for zo.space API)
 """
 import os, yaml, re, json
 from pathlib import Path
@@ -133,7 +133,7 @@ for att in attendees:
         for q in top_quotes:
             body += f"> {q['text']}\n>\n> — [[{q['session']}]] @ {q['timestamp']}\n\n"
     body += "\n## Provenance\n\n"
-    body += "All facts derived from witnessed events in `core/vault/calls/chaos-sessions/`. "
+    body += "All facts derived from witnessed events in `vault/calls/chaos-sessions/`. "
     body += "This is the collective's witness record — Birdbrain's slice of this person's identity. "
     body += "The canonical Seed lives (or will live) on the person's own Zo Computer.\n\n"
     body += "**To claim this Seed**: sign in via passkey Connect once it is live; the system will\n"
@@ -253,14 +253,14 @@ for (a, b), sessions in co_attendance.items():
 
 # ===== REPORT =====
 print(f"=== DISTRIBUTE COMPLETE ===\n")
-print(f"Seeds written:         {seeds_written}  → core/vault/seeds/")
-print(f"Concepts promoted:     {concepts_promoted}  → core/vault/concepts/")
-print(f"Concepts provisional:  {concepts_provisional}  → core/vault/concepts/_provisional/")
-print(f"Graph edges:           {len(edges)}  → core/vault/calls/chaos-sessions/_edges.yaml")
+print(f"Seeds written:         {seeds_written}  → vault/seeds/")
+print(f"Concepts promoted:     {concepts_promoted}  → vault/concepts/")
+print(f"Concepts provisional:  {concepts_provisional}  → vault/concepts/_provisional/")
+print(f"Graph edges:           {len(edges)}  → vault/calls/chaos-sessions/_edges.yaml")
 print(f"  · co-attended:       {sum(1 for e in edges if e['type']=='co-attended')}")
 print(f"  · mentioned:         {sum(1 for e in edges if e['type']=='mentioned')}")
 print(f"  · quoted-in:         {sum(1 for e in edges if e['type']=='quoted-in')}")
-print(f"Graph edges (JSON):    {len(edges)}  → core/vault/calls/chaos-sessions/_edges.json")
+print(f"Graph edges (JSON):    {len(edges)}  → vault/calls/chaos-sessions/_edges.json")
 
 # ===== SNAPSHOT for the /chaos page =====
 import json as _json
@@ -413,7 +413,7 @@ attendees_list = attendees_yaml.get("attendees", [])
 
 # Cross-session motifs (the semantic layer): picked up if semantic.py has run.
 # Motifs are the differently-worded-but-same-idea threads that exact concept
-# recurrence misses — see core/vault/scripts/chaos-sessions/semantic.py.
+# recurrence misses. The motif builder is not part of this repo yet.
 _motifs_f = SESS / "_semantic" / "motifs.json"
 motifs_doc = _json.loads(_motifs_f.read_text()) if _motifs_f.exists() else {"motifs": []}
 motifs = motifs_doc.get("motifs", [])

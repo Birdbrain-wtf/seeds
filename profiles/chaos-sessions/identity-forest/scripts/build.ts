@@ -71,6 +71,8 @@ type Seed = {
   topics: Topic[];
   quotes: Quote[];
   address: string;
+  /** Set when a claim found this Seed and another are one person: fold into that one. */
+  sameAs: string;
 };
 
 function parseSeed(file: string): Seed | null {
@@ -136,6 +138,7 @@ function parseSeed(file: string): Seed | null {
     topics,
     quotes,
     address: scalar("address") === "null" ? "" : scalar("address"),
+    sameAs: scalar("same_as"),
   };
 }
 
@@ -490,7 +493,27 @@ function escapeXml(s: string) {
 
 // ---------- main ----------
 const files = readdirSync(SEEDS_DIR).filter((f) => f.endsWith(".md"));
-const seeds = files.map(parseSeed).filter((s): s is Seed => !!s);
+const seeds = foldClaimed(files.map(parseSeed).filter((s): s is Seed => !!s));
+
+// A settled claim can say several Seeds are one person (same_as). Draw one organism:
+// the first Seed takes the others' sessions, topics and words.
+function foldClaimed(all: Seed[]): Seed[] {
+  const bySlug = new Map(all.map((s) => [s.slug, s]));
+  for (const s of all) {
+    const into = s.sameAs && bySlug.get(s.sameAs);
+    if (!into || into === s) continue;
+    into.attended = [...new Set([...into.attended, ...s.attended])];
+    into.mentioned = [...new Set([...into.mentioned, ...s.mentioned])];
+    into.actionItems += s.actionItems;
+    into.quotes.push(...s.quotes);
+    for (const t of s.topics) {
+      const have = into.topics.find((x) => x.topic === t.topic);
+      if (have) have.sessions += t.sessions;
+      else into.topics.push({ ...t });
+    }
+  }
+  return all.filter((s) => !(s.sameAs && bySlug.get(s.sameAs) && bySlug.get(s.sameAs) !== s));
+}
 const edges = coAttendance(seeds);
 const sprouts = seeds.map(sproutOf);
 const depth = topicalDepth(seeds);

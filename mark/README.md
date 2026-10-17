@@ -13,6 +13,8 @@ The Identity Forest draws each Seed as an organism. The organism is a portrait. 
 
 An unanchored mark is drawn in grey with a hollow, dashed core, so it never passes for an anchored one. Its rings and frame stay solid so a camera can still read it and report that it proves nothing. The kind is also part of the check bits, so a reader recovers it from the picture, not from the styling. When a Seed gets an account, its mark changes once, from hollow to solid, and then stays fixed.
 
+A Seed gets its account by being claimed: the member picks it in the app's Profile and signs the claim with a passkey that holds a Kreivo Pass account, and after a week with no objection standing the account is written into the Seed ([`profiles/chaos-sessions/identity-forest/scripts/seed-claims.ts`](../profiles/chaos-sessions/identity-forest/scripts/seed-claims.ts)). Only an account the member holds is ever anchored, so the mark never has to change a second time. `verify.ts` still looks the account up on a seeds chain, so a claimed mark verifies there only once that account has been admitted.
+
 ## Geometry (v1)
 
 The viewBox is `0 -2 120 122` and the centre is (60, 60). Angles run clockwise from the top.
