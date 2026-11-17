@@ -31,6 +31,8 @@ bun run profiles/chaos-sessions/participation-graph/scripts/build.ts
 | `replied-to` | seed → parent-author seed | resolved from `replyTo` (parent comment id) |
 | `mentioned` | seed → mentioned seed | parsed `@handle`, resolved against the alias table |
 
+**On-chain transfers, if they ever become edges:** drop any where sender equals recipient, comparing public keys rather than ss58 strings. A self-transfer moves no balance, but it can still report success and, on `pallet-assets`, still emit `Transferred`, so anyone could inflate activity for the fee alone. No edge reads the chain today.
+
 ## Alerts (the first consumer)
 
 To alert a seed when they receive a reply or mention: read `by-seed.json`,

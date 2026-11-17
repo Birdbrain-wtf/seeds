@@ -1,0 +1,954 @@
+{
+ "version": 1,
+ "rules": {
+  "example/identity": {
+   "window": 604800,
+   "confirm": false,
+   "vouches": 0,
+   "amend": {
+    "window": 604800,
+    "vouches": 1
+   }
+  },
+  "example/credit": {
+   "window": 0,
+   "confirm": true,
+   "vouches": 1,
+   "amend": {
+    "window": 604800,
+    "vouches": 2
+   }
+  }
+ },
+ "cases": [
+  {
+   "name": "an identity claim inside its window is open",
+   "now": "2026-10-05T12:00:00.000Z",
+   "events": [
+    {
+     "v": 1,
+     "id": "e1",
+     "at": "2026-10-01T12:00:00.000Z",
+     "claim": "a",
+     "act": "assert",
+     "by": "alice",
+     "kind": "identity",
+     "profile": "example",
+     "subject": "alice",
+     "relation": "is",
+     "target": "seed:alice"
+    }
+   ],
+   "expect": {
+    "a": {
+     "state": "open",
+     "waiting": "window"
+    }
+   }
+  },
+  {
+   "name": "it settles when the window closes with nothing against it",
+   "now": "2026-10-09T12:00:00.000Z",
+   "events": [
+    {
+     "v": 1,
+     "id": "e2",
+     "at": "2026-10-01T12:00:00.000Z",
+     "claim": "a",
+     "act": "assert",
+     "by": "alice",
+     "kind": "identity",
+     "profile": "example",
+     "subject": "alice",
+     "relation": "is",
+     "target": "seed:alice"
+    }
+   ],
+   "expect": {
+    "a": {
+     "state": "settled",
+     "waiting": null,
+     "settledAt": "2026-10-08T12:00:00.000Z"
+    }
+   }
+  },
+  {
+   "name": "an objection pauses it",
+   "now": "2026-10-09T12:00:00.000Z",
+   "events": [
+    {
+     "v": 1,
+     "id": "e3",
+     "at": "2026-10-01T12:00:00.000Z",
+     "claim": "a",
+     "act": "assert",
+     "by": "alice",
+     "kind": "identity",
+     "profile": "example",
+     "subject": "alice",
+     "relation": "is",
+     "target": "seed:alice"
+    },
+    {
+     "v": 1,
+     "id": "e4",
+     "at": "2026-10-03T12:00:00.000Z",
+     "claim": "a",
+     "act": "object",
+     "by": "bob",
+     "reason": "that Seed is Carol"
+    }
+   ],
+   "expect": {
+    "a": {
+     "state": "disputed",
+     "waiting": "objection"
+    }
+   }
+  },
+  {
+   "name": "an upheld objection rejects it",
+   "now": "2026-10-09T12:00:00.000Z",
+   "events": [
+    {
+     "v": 1,
+     "id": "e6",
+     "at": "2026-10-01T12:00:00.000Z",
+     "claim": "a",
+     "act": "assert",
+     "by": "alice",
+     "kind": "identity",
+     "profile": "example",
+     "subject": "alice",
+     "relation": "is",
+     "target": "seed:alice"
+    },
+    {
+     "v": 1,
+     "id": "e5",
+     "at": "2026-10-03T12:00:00.000Z",
+     "claim": "a",
+     "act": "object",
+     "by": "bob",
+     "reason": "that Seed is Carol"
+    },
+    {
+     "v": 1,
+     "id": "e7",
+     "at": "2026-10-04T12:00:00.000Z",
+     "claim": "a",
+     "act": "resolve",
+     "by": "steward",
+     "objection": "e5",
+     "outcome": "upheld"
+    }
+   ],
+   "expect": {
+    "a": {
+     "state": "rejected",
+     "waiting": null
+    }
+   }
+  },
+  {
+   "name": "a dismissed objection lets the window run on",
+   "now": "2026-10-09T12:00:00.000Z",
+   "events": [
+    {
+     "v": 1,
+     "id": "e9",
+     "at": "2026-10-01T12:00:00.000Z",
+     "claim": "a",
+     "act": "assert",
+     "by": "alice",
+     "kind": "identity",
+     "profile": "example",
+     "subject": "alice",
+     "relation": "is",
+     "target": "seed:alice"
+    },
+    {
+     "v": 1,
+     "id": "e8",
+     "at": "2026-10-03T12:00:00.000Z",
+     "claim": "a",
+     "act": "object",
+     "by": "bob",
+     "reason": "unsure"
+    },
+    {
+     "v": 1,
+     "id": "e10",
+     "at": "2026-10-04T12:00:00.000Z",
+     "claim": "a",
+     "act": "resolve",
+     "by": "steward",
+     "objection": "e8",
+     "outcome": "dismissed"
+    }
+   ],
+   "expect": {
+    "a": {
+     "state": "settled",
+     "settledAt": "2026-10-08T12:00:00.000Z"
+    }
+   }
+  },
+  {
+   "name": "an objection after the window closed is too late",
+   "now": "2026-10-12T12:00:00.000Z",
+   "events": [
+    {
+     "v": 1,
+     "id": "e11",
+     "at": "2026-10-01T12:00:00.000Z",
+     "claim": "a",
+     "act": "assert",
+     "by": "alice",
+     "kind": "identity",
+     "profile": "example",
+     "subject": "alice",
+     "relation": "is",
+     "target": "seed:alice"
+    },
+    {
+     "v": 1,
+     "id": "e12",
+     "at": "2026-10-10T12:00:00.000Z",
+     "claim": "a",
+     "act": "object",
+     "by": "bob",
+     "reason": "late"
+    }
+   ],
+   "expect": {
+    "a": {
+     "state": "settled",
+     "settledAt": "2026-10-08T12:00:00.000Z"
+    }
+   }
+  },
+  {
+   "name": "withdrawing inside the window ends it",
+   "now": "2026-10-09T12:00:00.000Z",
+   "events": [
+    {
+     "v": 1,
+     "id": "e13",
+     "at": "2026-10-01T12:00:00.000Z",
+     "claim": "a",
+     "act": "assert",
+     "by": "alice",
+     "kind": "identity",
+     "profile": "example",
+     "subject": "alice",
+     "relation": "is",
+     "target": "seed:alice"
+    },
+    {
+     "v": 1,
+     "id": "e14",
+     "at": "2026-10-02T12:00:00.000Z",
+     "claim": "a",
+     "act": "withdraw",
+     "by": "alice"
+    }
+   ],
+   "expect": {
+    "a": {
+     "state": "withdrawn",
+     "waiting": null
+    }
+   }
+  },
+  {
+   "name": "withdrawing after it settled changes nothing",
+   "now": "2026-10-12T12:00:00.000Z",
+   "events": [
+    {
+     "v": 1,
+     "id": "e15",
+     "at": "2026-10-01T12:00:00.000Z",
+     "claim": "a",
+     "act": "assert",
+     "by": "alice",
+     "kind": "identity",
+     "profile": "example",
+     "subject": "alice",
+     "relation": "is",
+     "target": "seed:alice"
+    },
+    {
+     "v": 1,
+     "id": "e16",
+     "at": "2026-10-10T12:00:00.000Z",
+     "claim": "a",
+     "act": "withdraw",
+     "by": "alice"
+    }
+   ],
+   "expect": {
+    "a": {
+     "state": "settled"
+    }
+   }
+  },
+  {
+   "name": "a claimant may lengthen the window, never shorten it",
+   "now": "2026-10-09T12:00:00.000Z",
+   "events": [
+    {
+     "v": 1,
+     "id": "e17",
+     "at": "2026-10-01T12:00:00.000Z",
+     "claim": "a",
+     "act": "assert",
+     "by": "alice",
+     "kind": "identity",
+     "profile": "example",
+     "subject": "alice",
+     "relation": "is",
+     "target": "seed:alice",
+     "until": "2026-10-02T12:00:00.000Z"
+    },
+    {
+     "v": 1,
+     "id": "e18",
+     "at": "2026-10-01T12:00:00.000Z",
+     "claim": "b",
+     "act": "assert",
+     "by": "bob",
+     "kind": "identity",
+     "profile": "example",
+     "subject": "bob",
+     "relation": "is",
+     "target": "seed:alice",
+     "until": "2026-10-10T12:00:00.000Z"
+    }
+   ],
+   "expect": {
+    "a": {
+     "state": "settled",
+     "settledAt": "2026-10-08T12:00:00.000Z"
+    },
+    "b": {
+     "state": "open",
+     "waiting": "window"
+    }
+   }
+  },
+  {
+   "name": "a withdrawn claim can be said again and starts over",
+   "now": "2026-10-09T12:00:00.000Z",
+   "events": [
+    {
+     "v": 1,
+     "id": "e19",
+     "at": "2026-10-01T12:00:00.000Z",
+     "claim": "a",
+     "act": "assert",
+     "by": "alice",
+     "kind": "identity",
+     "profile": "example",
+     "subject": "alice",
+     "relation": "is",
+     "target": "seed:alice"
+    },
+    {
+     "v": 1,
+     "id": "e20",
+     "at": "2026-10-02T12:00:00.000Z",
+     "claim": "a",
+     "act": "withdraw",
+     "by": "alice"
+    },
+    {
+     "v": 1,
+     "id": "e21",
+     "at": "2026-10-05T12:00:00.000Z",
+     "claim": "a",
+     "act": "assert",
+     "by": "alice",
+     "kind": "identity",
+     "profile": "example",
+     "subject": "alice",
+     "relation": "is",
+     "target": "seed:alice"
+    }
+   ],
+   "expect": {
+    "a": {
+     "state": "open",
+     "waiting": "window"
+    }
+   }
+  },
+  {
+   "name": "a credit waits for the person named",
+   "now": "2026-10-09T12:00:00.000Z",
+   "events": [
+    {
+     "v": 1,
+     "id": "e22",
+     "at": "2026-10-01T12:00:00.000Z",
+     "claim": "c",
+     "act": "assert",
+     "by": "bob",
+     "kind": "credit",
+     "profile": "example",
+     "subject": "alice",
+     "relation": "Camera Operator",
+     "target": "film:1"
+    }
+   ],
+   "expect": {
+    "c": {
+     "state": "open",
+     "waiting": "confirm"
+    }
+   }
+  },
+  {
+   "name": "then for a third person",
+   "now": "2026-10-09T12:00:00.000Z",
+   "events": [
+    {
+     "v": 1,
+     "id": "e23",
+     "at": "2026-10-01T12:00:00.000Z",
+     "claim": "c",
+     "act": "assert",
+     "by": "bob",
+     "kind": "credit",
+     "profile": "example",
+     "subject": "alice",
+     "relation": "Camera Operator",
+     "target": "film:1"
+    },
+    {
+     "v": 1,
+     "id": "e24",
+     "at": "2026-10-02T12:00:00.000Z",
+     "claim": "c",
+     "act": "confirm",
+     "by": "alice"
+    }
+   ],
+   "expect": {
+    "c": {
+     "state": "open",
+     "waiting": "vouches"
+    }
+   }
+  },
+  {
+   "name": "it settles on the vouch",
+   "now": "2026-10-09T12:00:00.000Z",
+   "events": [
+    {
+     "v": 1,
+     "id": "e25",
+     "at": "2026-10-01T12:00:00.000Z",
+     "claim": "c",
+     "act": "assert",
+     "by": "bob",
+     "kind": "credit",
+     "profile": "example",
+     "subject": "alice",
+     "relation": "Camera Operator",
+     "target": "film:1"
+    },
+    {
+     "v": 1,
+     "id": "e26",
+     "at": "2026-10-02T12:00:00.000Z",
+     "claim": "c",
+     "act": "confirm",
+     "by": "alice"
+    },
+    {
+     "v": 1,
+     "id": "e27",
+     "at": "2026-10-03T12:00:00.000Z",
+     "claim": "c",
+     "act": "vouch",
+     "by": "carol"
+    }
+   ],
+   "expect": {
+    "c": {
+     "state": "settled",
+     "settledAt": "2026-10-03T12:00:00.000Z"
+    }
+   }
+  },
+  {
+   "name": "a vouch from the asserter or the confirmer does not count",
+   "now": "2026-10-09T12:00:00.000Z",
+   "events": [
+    {
+     "v": 1,
+     "id": "e28",
+     "at": "2026-10-01T12:00:00.000Z",
+     "claim": "c",
+     "act": "assert",
+     "by": "bob",
+     "kind": "credit",
+     "profile": "example",
+     "subject": "alice",
+     "relation": "Camera Operator",
+     "target": "film:1"
+    },
+    {
+     "v": 1,
+     "id": "e29",
+     "at": "2026-10-02T12:00:00.000Z",
+     "claim": "c",
+     "act": "confirm",
+     "by": "alice"
+    },
+    {
+     "v": 1,
+     "id": "e30",
+     "at": "2026-10-03T12:00:00.000Z",
+     "claim": "c",
+     "act": "vouch",
+     "by": "bob"
+    },
+    {
+     "v": 1,
+     "id": "e31",
+     "at": "2026-10-03T12:00:00.000Z",
+     "claim": "c",
+     "act": "vouch",
+     "by": "alice"
+    }
+   ],
+   "expect": {
+    "c": {
+     "state": "open",
+     "waiting": "vouches"
+    }
+   }
+  },
+  {
+   "name": "a self-credit is confirmed by someone else",
+   "now": "2026-10-09T12:00:00.000Z",
+   "events": [
+    {
+     "v": 1,
+     "id": "e32",
+     "at": "2026-10-01T12:00:00.000Z",
+     "claim": "c",
+     "act": "assert",
+     "by": "alice",
+     "kind": "credit",
+     "profile": "example",
+     "subject": "alice",
+     "relation": "Camera Operator",
+     "target": "film:1"
+    },
+    {
+     "v": 1,
+     "id": "e33",
+     "at": "2026-10-02T12:00:00.000Z",
+     "claim": "c",
+     "act": "confirm",
+     "by": "bob"
+    },
+    {
+     "v": 1,
+     "id": "e34",
+     "at": "2026-10-03T12:00:00.000Z",
+     "claim": "c",
+     "act": "vouch",
+     "by": "carol"
+    }
+   ],
+   "expect": {
+    "c": {
+     "state": "settled"
+    }
+   }
+  },
+  {
+   "name": "a blank role has nobody to confirm",
+   "now": "2026-10-09T12:00:00.000Z",
+   "events": [
+    {
+     "v": 1,
+     "id": "e35",
+     "at": "2026-10-01T12:00:00.000Z",
+     "claim": "c",
+     "act": "assert",
+     "by": "bob",
+     "kind": "credit",
+     "profile": "example",
+     "subject": "",
+     "relation": "Camera Operator",
+     "target": "film:1"
+    },
+    {
+     "v": 1,
+     "id": "e36",
+     "at": "2026-10-02T12:00:00.000Z",
+     "claim": "c",
+     "act": "vouch",
+     "by": "carol"
+    }
+   ],
+   "expect": {
+    "c": {
+     "state": "settled"
+    }
+   }
+  },
+  {
+   "name": "an objection after a credit settled is too late",
+   "now": "2026-10-09T12:00:00.000Z",
+   "events": [
+    {
+     "v": 1,
+     "id": "e37",
+     "at": "2026-10-01T12:00:00.000Z",
+     "claim": "c",
+     "act": "assert",
+     "by": "bob",
+     "kind": "credit",
+     "profile": "example",
+     "subject": "alice",
+     "relation": "Camera Operator",
+     "target": "film:1"
+    },
+    {
+     "v": 1,
+     "id": "e38",
+     "at": "2026-10-02T12:00:00.000Z",
+     "claim": "c",
+     "act": "confirm",
+     "by": "alice"
+    },
+    {
+     "v": 1,
+     "id": "e39",
+     "at": "2026-10-03T12:00:00.000Z",
+     "claim": "c",
+     "act": "vouch",
+     "by": "carol"
+    },
+    {
+     "v": 1,
+     "id": "e40",
+     "at": "2026-10-04T12:00:00.000Z",
+     "claim": "c",
+     "act": "object",
+     "by": "dave",
+     "reason": "no"
+    }
+   ],
+   "expect": {
+    "c": {
+     "state": "settled"
+    }
+   }
+  },
+  {
+   "name": "a correction waits its window and twice the vouches",
+   "now": "2026-10-20T12:00:00.000Z",
+   "events": [
+    {
+     "v": 1,
+     "id": "e41",
+     "at": "2026-10-01T12:00:00.000Z",
+     "claim": "c",
+     "act": "assert",
+     "by": "bob",
+     "kind": "credit",
+     "profile": "example",
+     "subject": "alice",
+     "relation": "Camera Operator",
+     "target": "film:1"
+    },
+    {
+     "v": 1,
+     "id": "e42",
+     "at": "2026-10-02T12:00:00.000Z",
+     "claim": "c",
+     "act": "confirm",
+     "by": "alice"
+    },
+    {
+     "v": 1,
+     "id": "e43",
+     "at": "2026-10-03T12:00:00.000Z",
+     "claim": "c",
+     "act": "vouch",
+     "by": "carol"
+    },
+    {
+     "v": 1,
+     "id": "e44",
+     "at": "2026-10-04T12:00:00.000Z",
+     "claim": "d",
+     "act": "amend",
+     "by": "dave",
+     "kind": "credit",
+     "profile": "example",
+     "subject": "erin",
+     "relation": "Camera Operator",
+     "target": "film:1",
+     "supersedes": "c",
+     "reason": "the call sheet says Erin"
+    },
+    {
+     "v": 1,
+     "id": "e45",
+     "at": "2026-10-05T12:00:00.000Z",
+     "claim": "d",
+     "act": "confirm",
+     "by": "erin"
+    },
+    {
+     "v": 1,
+     "id": "e46",
+     "at": "2026-10-06T12:00:00.000Z",
+     "claim": "d",
+     "act": "vouch",
+     "by": "carol"
+    }
+   ],
+   "expect": {
+    "c": {
+     "state": "settled"
+    },
+    "d": {
+     "state": "open",
+     "waiting": "vouches"
+    }
+   }
+  },
+  {
+   "name": "a settled correction supersedes the old claim",
+   "now": "2026-10-20T12:00:00.000Z",
+   "events": [
+    {
+     "v": 1,
+     "id": "e41",
+     "at": "2026-10-01T12:00:00.000Z",
+     "claim": "c",
+     "act": "assert",
+     "by": "bob",
+     "kind": "credit",
+     "profile": "example",
+     "subject": "alice",
+     "relation": "Camera Operator",
+     "target": "film:1"
+    },
+    {
+     "v": 1,
+     "id": "e42",
+     "at": "2026-10-02T12:00:00.000Z",
+     "claim": "c",
+     "act": "confirm",
+     "by": "alice"
+    },
+    {
+     "v": 1,
+     "id": "e43",
+     "at": "2026-10-03T12:00:00.000Z",
+     "claim": "c",
+     "act": "vouch",
+     "by": "carol"
+    },
+    {
+     "v": 1,
+     "id": "e44",
+     "at": "2026-10-04T12:00:00.000Z",
+     "claim": "d",
+     "act": "amend",
+     "by": "dave",
+     "kind": "credit",
+     "profile": "example",
+     "subject": "erin",
+     "relation": "Camera Operator",
+     "target": "film:1",
+     "supersedes": "c",
+     "reason": "the call sheet says Erin"
+    },
+    {
+     "v": 1,
+     "id": "e47",
+     "at": "2026-10-05T12:00:00.000Z",
+     "claim": "d",
+     "act": "confirm",
+     "by": "erin"
+    },
+    {
+     "v": 1,
+     "id": "e48",
+     "at": "2026-10-06T12:00:00.000Z",
+     "claim": "d",
+     "act": "vouch",
+     "by": "carol"
+    },
+    {
+     "v": 1,
+     "id": "e49",
+     "at": "2026-10-06T12:00:00.000Z",
+     "claim": "d",
+     "act": "vouch",
+     "by": "frank"
+    }
+   ],
+   "expect": {
+    "c": {
+     "state": "superseded",
+     "supersededBy": "d"
+    },
+    "d": {
+     "state": "settled",
+     "settledAt": "2026-10-11T12:00:00.000Z"
+    }
+   }
+  },
+  {
+   "name": "a correction inside its window leaves the old claim standing",
+   "now": "2026-10-08T12:00:00.000Z",
+   "events": [
+    {
+     "v": 1,
+     "id": "e41",
+     "at": "2026-10-01T12:00:00.000Z",
+     "claim": "c",
+     "act": "assert",
+     "by": "bob",
+     "kind": "credit",
+     "profile": "example",
+     "subject": "alice",
+     "relation": "Camera Operator",
+     "target": "film:1"
+    },
+    {
+     "v": 1,
+     "id": "e42",
+     "at": "2026-10-02T12:00:00.000Z",
+     "claim": "c",
+     "act": "confirm",
+     "by": "alice"
+    },
+    {
+     "v": 1,
+     "id": "e43",
+     "at": "2026-10-03T12:00:00.000Z",
+     "claim": "c",
+     "act": "vouch",
+     "by": "carol"
+    },
+    {
+     "v": 1,
+     "id": "e44",
+     "at": "2026-10-04T12:00:00.000Z",
+     "claim": "d",
+     "act": "amend",
+     "by": "dave",
+     "kind": "credit",
+     "profile": "example",
+     "subject": "erin",
+     "relation": "Camera Operator",
+     "target": "film:1",
+     "supersedes": "c",
+     "reason": "the call sheet says Erin"
+    },
+    {
+     "v": 1,
+     "id": "e50",
+     "at": "2026-10-05T12:00:00.000Z",
+     "claim": "d",
+     "act": "confirm",
+     "by": "erin"
+    },
+    {
+     "v": 1,
+     "id": "e51",
+     "at": "2026-10-06T12:00:00.000Z",
+     "claim": "d",
+     "act": "vouch",
+     "by": "carol"
+    },
+    {
+     "v": 1,
+     "id": "e52",
+     "at": "2026-10-06T12:00:00.000Z",
+     "claim": "d",
+     "act": "vouch",
+     "by": "frank"
+    }
+   ],
+   "expect": {
+    "c": {
+     "state": "settled"
+    },
+    "d": {
+     "state": "open",
+     "waiting": "window"
+    }
+   }
+  },
+  {
+   "name": "events about no claim are ignored",
+   "now": "2026-10-09T12:00:00.000Z",
+   "events": [
+    {
+     "v": 1,
+     "id": "e53",
+     "at": "2026-10-01T12:00:00.000Z",
+     "claim": "zz",
+     "act": "vouch",
+     "by": "bob"
+    }
+   ],
+   "expect": {}
+  },
+  {
+   "name": "file order breaks ties at the same instant",
+   "now": "2026-10-09T12:00:00.000Z",
+   "events": [
+    {
+     "v": 1,
+     "id": "e54",
+     "at": "2026-10-01T12:00:00.000Z",
+     "claim": "c",
+     "act": "assert",
+     "by": "bob",
+     "kind": "credit",
+     "profile": "example",
+     "subject": "alice",
+     "relation": "Camera Operator",
+     "target": "film:1"
+    },
+    {
+     "v": 1,
+     "id": "e55",
+     "at": "2026-10-02T12:00:00.000Z",
+     "claim": "c",
+     "act": "confirm",
+     "by": "alice"
+    },
+    {
+     "v": 1,
+     "id": "e56",
+     "at": "2026-10-02T12:00:00.000Z",
+     "claim": "c",
+     "act": "vouch",
+     "by": "carol"
+    }
+   ],
+   "expect": {
+    "c": {
+     "state": "settled",
+     "settledAt": "2026-10-02T12:00:00.000Z"
+    }
+   }
+  }
+ ]
+}

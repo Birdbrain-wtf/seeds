@@ -17,6 +17,7 @@ This repository is [Birdbrain](https://birdbrain.wtf)'s. It holds the protocol, 
 | [`conformance/`](conformance) | The rules as 28 vectors. Any engine that claims to run Seeds is held to them. The reference runtime passes all 28 |
 | [`presence/`](presence) | Attendance roots: who was in the room, as a Merkle root anyone can rebuild. The evidence admission reads |
 | [`mark/`](mark) | The seed mark: a Seed's identity as a fixed picture. It carries the member's account and a check, so anyone can read the bytes back and look the record up on chain. A phone reads it with its camera, on the device |
+| [`claims/`](claims) | Claims: one format for saying who you are and taking credit for work. A claim is open where members can see it, then settles by the profile's rule. Only a settled claim's digest goes on chain |
 | [`profiles/`](profiles) | Networks that run the protocol with their own settings. [`chaos-sessions/`](profiles/chaos-sessions) is the first, with the tooling that turns its sessions into Seed records and draws them as a forest |
 
 The same rules also run as JAM services in a separate repository, [Jambo](https://github.com/Birdbrain-wtf/jambo). People meet the network through [Murmur](https://github.com/Birdbrain-wtf/murmur), Birdbrain's open app.

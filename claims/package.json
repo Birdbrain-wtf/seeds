@@ -1,0 +1,10 @@
+{
+  "name": "seeds-claims",
+  "version": "1.0.0",
+  "description": "Claims: one format for saying who you are and taking credit for work, with the rules that settle them.",
+  "license": "Apache-2.0",
+  "type": "module",
+  "scripts": {
+    "test": "bun run test.ts"
+  }
+}

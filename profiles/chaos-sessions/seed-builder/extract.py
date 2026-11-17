@@ -140,7 +140,9 @@ async def call_llm(session: aiohttp.ClientSession, prompt: str) -> str:
         json={"model": MODEL, "messages": [{"role": "user", "content": prompt}]},
         timeout=aiohttp.ClientTimeout(total=600),
     ) as resp:
-        data = await resp.json()
+        data = await resp.json(content_type=None)
+        if "choices" not in data:
+            raise RuntimeError(f"model call failed (HTTP {resp.status}, model {MODEL}): {str(data)[:300]}")
         return data["choices"][0]["message"]["content"]
 
 
