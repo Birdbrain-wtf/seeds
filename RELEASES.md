@@ -10,6 +10,7 @@ From v2, every release is:
 
 | tag | commit | CID | fixed in | date |
 |---|---|---|---|---|
+| v5 | `7880bc5` | [`bafybeignuwtwzh5…`](https://ipfs.birdbrain.wtf/ipfs/bafybeignuwtwzh5v6f3ojk6h2gpdbv4qo2uxeu3v27inhuf42oavrxgb24/) | BBT #753856-1 | 2026-11-17 |
 | v4 | `32643cd` | [`bafybeidf5bsphcz…`](https://ipfs.birdbrain.wtf/ipfs/bafybeidf5bsphczfjtkbh3sb2drni4cq5wwxjjvdfqkifiqwymydnxydmm/) | BBT #309350-1 | 2026-10-17 |
 | v3 | `359c84e` | [`bafybeihxaudmkcq…`](https://ipfs.birdbrain.wtf/ipfs/bafybeihxaudmkcqkkeffdpytg6kqbqjbhn3ubd5dhsobtx4wqwq7jwvnje/) | BBT #159782-1 | 2026-10-06 |
 | v2 | `f8d7170` | [`bafybeib2y724ril…`](https://ipfs.birdbrain.wtf/ipfs/bafybeib2y724rilxyupvfundsy5scyhjrjhi5fxcnm76m2f6lbigqfalci/) | BBT #142890-1 | 2026-10-05 |
@@ -23,6 +24,15 @@ From v2, every release is:
 4. Hold the code to the rules: `bash chain/scripts/e2e.sh | tee run.log && bun run conformance/check-log.ts run.log`.
 
 ## Full identifiers
+
+### v5
+
+- commit `7880bc5`
+- CID `bafybeignuwtwzh5v6f3ojk6h2gpdbv4qo2uxeu3v27inhuf42oavrxgb24`
+- source `https://ipfs.birdbrain.wtf/ipfs/bafybeignuwtwzh5v6f3ojk6h2gpdbv4qo2uxeu3v27inhuf42oavrxgb24/seeds-v5-src.tar.gz`
+- fixed on the BBT chain (genesis `0x590faee06c5152afe2841247408bc2cff08a738482bc21581d9cd622a4080260`) in block #753856, `0x5f0e2c1d5464f823620dbd238316a5424e5d3586e5e89d8b029b325c3828456a`, extrinsic 1, tx `0xb29fb381463d55332c54d9c0efb649ce27c808c5e6a43562f0c47527ebf2f528`
+- signed by the release key `5DFXkAKLVMnmyexsYXHs8tBSmbpvEMPWjB1iiNpmJN3SrGC8`
+- remark `BIRDBRAIN::RELEASE::seeds::v5::bafybeignuwtwzh5v6f3ojk6h2gpdbv4qo2uxeu3v27inhuf42oavrxgb24::7880bc5`
 
 ### v4
 
